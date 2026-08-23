@@ -289,6 +289,14 @@ async function loadTabData(tabName) {
   } catch (e) { /* error sudah ditampilkan via toast */ }
 }
 
+/** Cegah dua proses load dashboard bersamaan (dedupe) */
+function loadDashboard(force) {
+  if (force || !state._dashInflight) {
+    state._dashInflight = doLoadDashboard(force).finally(() => { state._dashInflight = null; });
+  }
+  return state._dashInflight;
+}
+
 /* ==================== Dashboard: lazy loading + cache ==================== */
 
 const DASH_DEFS = [
@@ -332,7 +340,7 @@ function renderDashboardStage3() {
   renderHeaderStats();
 }
 
-async function loadDashboard(force) {
+async function doLoadDashboard(force) {
   const values = {};
   let pending = 0;
 
@@ -346,7 +354,6 @@ async function loadDashboard(force) {
     if (values[d.name] !== undefined) applyDashPiece(d.name, values[d.name]);
   });
 
-  showLoading(true);
   renderDashboardStage1();
 
   // 2) Semua fresh -> selesai tanpa jaringan
@@ -355,6 +362,7 @@ async function loadDashboard(force) {
       renderDashboardStage2();
       renderDashboardStage3();
       hideLoading();
+      notifyDataReady();
     }, 0);
     return;
   }
@@ -374,11 +382,13 @@ async function loadDashboard(force) {
         values[d.name] = j.data;
         applyDashPiece(d.name, j.data);
         if (d.name === 'kpi') renderDashboardStage1(); // KPI tampil lebih dulu
+        if (d.name === 'dashboard') renderDashboardStage2(); // grafik saat pivot siap
       } catch (err) {
         showToast('Gagal memuat ' + d.label + ': ' + err.message, 'error');
       } finally {
         done++;
         setLoadingText('Mengambil data ' + done + '/' + pending + '... (' + d.label + ')');
+        splashTick(done / pending * 92, 'Loading ' + d.label + '...');
       }
     }));
 
@@ -387,12 +397,16 @@ async function loadDashboard(force) {
     renderDashboardStage2();
     renderDashboardStage3();
     hideLoading();
-    if (window.__notifyDataReady) {
-      const fn = window.__notifyDataReady;
-      window.__notifyDataReady = null;
-      fn();
-    }
+    notifyDataReady();
   }, 0);
+}
+
+function notifyDataReady() {
+  if (window.__notifyDataReady) {
+    const fn = window.__notifyDataReady;
+    window.__notifyDataReady = null;
+    fn();
+  }
 }
 
 /* ==================== Full Dashboard ==================== */
@@ -1761,13 +1775,16 @@ function createParticles() {
   }
 }
 
+let lastSplashPct = 0;
 function splashProgress(pct, statusText) {
   if (!splashActive) return;
+  const p = Math.max(Math.min(pct, 100), lastSplashPct); // monoton naik
+  lastSplashPct = p;
   const fill = document.getElementById('loaderFill');
   const perc = document.getElementById('loaderPercent');
   const stat = document.getElementById('loaderStatus');
-  if (fill) fill.style.width = Math.min(pct, 100) + '%';
-  if (perc) perc.textContent = Math.round(Math.min(pct, 100)) + '%';
+  if (fill) fill.style.width = Math.round(p) + '%';
+  if (perc) perc.textContent = Math.round(p) + '%';
   if (stat && statusText) stat.textContent = statusText;
 }
 
@@ -1836,7 +1853,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('pivotSelect');
   if (sel) sel.addEventListener('change', e => switchPivot(e.target.value));
 
-  startSplash(() => switchTab('dashboard'));
+  // Mulai ambil data SELAMA splash berjalan (paralel, bukan setelahnya)
+  loadTabData('dashboard').catch(() => {});
+  startSplash(() => {
+    // switchTab akan memakai hasil inflight/cache -> instan
+    switchTab('dashboard');
+  });
 });
 
 
