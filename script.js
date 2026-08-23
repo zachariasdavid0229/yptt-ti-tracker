@@ -731,15 +731,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
 });
 
-/* ==================== Sync Manual ==================== */
-
-document.getElementById('btnSync').addEventListener('click', async () => {
-  try {
-    await apiCall('sync');
-    showToast('Sinkronisasi berhasil');
-  } catch (e) { /* sudah di-toast */ }
-});
-
 /* ==================== Utils ==================== */
 
 function esc(v) {

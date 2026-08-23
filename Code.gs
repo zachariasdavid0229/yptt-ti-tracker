@@ -288,19 +288,16 @@ function addSiteSUL(data) {
   ensureHeaders_(sheet);
   var row = buildRowForSheet_(sheet, data, null);
   sheet.appendRow(row);
-  syncAllData();
   return sheet.getLastRow();
 }
 
 function updateSiteSUL(rowIndex, data) {
   writeRowAt_(SHEETS.SITE_SUL, rowIndex, data);
-  syncAllData();
   return true;
 }
 
 function deleteSiteSUL(rowIndex) {
   deleteRowAt_(SHEETS.SITE_SUL, rowIndex);
-  syncAllData();
   return true;
 }
 
@@ -317,19 +314,16 @@ function addSiteKAL(data) {
   ensureHeaders_(sheet);
   var row = buildRowForSheet_(sheet, data, null);
   sheet.appendRow(row);
-  syncAllData();
   return sheet.getLastRow();
 }
 
 function updateSiteKAL(rowIndex, data) {
   writeRowAt_(SHEETS.SITE_KAL, rowIndex, data);
-  syncAllData();
   return true;
 }
 
 function deleteSiteKAL(rowIndex) {
   deleteRowAt_(SHEETS.SITE_KAL, rowIndex);
-  syncAllData();
   return true;
 }
 
@@ -483,7 +477,12 @@ function sumTotalsFromDash_(dash) {
 }
 
 /* ============================================================
- * SINKRONISASI PIVOT (syncAllData)
+ * SINKRONISASI PIVOT (MANUAL SAJA - TIDAK OTOMATIS)
+ *
+ * PENTING: Auto-sync sudah DINONAKTIFKAN agar tabel pivot
+ * manual di spreadsheet tidak tertimpa. Fungsi ini HANYA
+ * berjalan jika dipanggil eksplisit dari editor Apps Script.
+ * CRUD tidak lagi memicunya.
  * ============================================================ */
 
 function syncAllData() {
