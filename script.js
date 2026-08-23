@@ -860,9 +860,18 @@ function tryLongFormatPvt(sd) {
     });
     if (!clean.length) return null;
 
+    // Validasi ketat: baris sah harus Bulan valid (JAN..DES) + Jumlah angka.
+    // Mencegah sisa tempelan lama terbaca sebagai tabel input baru.
+    const valid = clean.filter(r => {
+      const m = String(r[iBul] === undefined ? '' : r[iBul]).trim().toUpperCase();
+      const jmlRaw = String(iJml >= 0 ? (r[iJml] === undefined ? '' : r[iJml]) : '').trim();
+      return MONTHS.includes(m) && jmlRaw !== '' && !isNaN(Number(jmlRaw));
+    });
+    if (valid.length < 3) return null;
+
     // Pilih kategori 'Assignment' bila ada, jika tidak pakai kategori terbanyak
     const counts = {};
-    clean.forEach(r => {
+    valid.forEach(r => {
       const k = String(r[iKat]).trim();
       counts[k] = (counts[k] || 0) + 1;
     });
@@ -870,7 +879,7 @@ function tryLongFormatPvt(sd) {
       Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
 
     const zones = [], months = [];
-    clean.forEach(r => {
+    valid.forEach(r => {
       const z = String(iZon >= 0 ? (r[iZon] === undefined ? '' : r[iZon]) : '-').trim() || '-';
       const m = String(r[iBul]).trim();
       if (z && zones.indexOf(z) === -1) zones.push(z);
@@ -883,7 +892,7 @@ function tryLongFormatPvt(sd) {
     months.sort((a, b) => mIdx(a) - mIdx(b));
 
     const agg = {};
-    clean.forEach(r => {
+    valid.forEach(r => {
       if (String(r[iKat]).trim() !== kat) return;
       const z = String(iZon >= 0 ? (r[iZon] === undefined ? '' : r[iZon]) : '-').trim() || '-';
       const m = String(r[iBul]).trim();
