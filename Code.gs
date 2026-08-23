@@ -116,7 +116,7 @@ function handleRequest_(method, e) {
         result = ok_({ rowIndex: addPivotRow_(validPivotSheet_(body.sheet), body.data || {}) }, 'Data berhasil ditambahkan');
         break;
       case 'pivot-update':
-        updateRowAt_(validPivotSheet_(body.sheet), body.rowIndex, body.data || {});
+        writeRowAt_(validPivotSheet_(body.sheet), body.rowIndex, body.data || {});
         result = ok_({}, 'Data berhasil diperbarui');
         break;
       case 'pivot-delete':
