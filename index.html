@@ -15,7 +15,8 @@
   <!-- Loading Overlay -->
   <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="spinner"></div>
-    <p>Memproses data...</p>
+    <p id="loadingText">Memproses data...</p>
+    <div class="load-bar"><div class="load-fill"></div></div>
   </div>
 
   <!-- Toast Notification -->
@@ -119,7 +120,7 @@
         <input type="text" id="search-site-sul" class="input" placeholder="Cari...">
         <span id="count-site-sul" class="badge"></span>
         <button class="btn btn-primary" onclick="showAddModal('site-sul')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet('site-sul')">Refresh</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-sul', true)">Refresh</button>
         <button class="btn btn-secondary" onclick="toggleFilterPanel('site-sul')">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-sul"></div>
@@ -139,7 +140,7 @@
         <input type="text" id="search-site-kal" class="input" placeholder="Cari...">
         <span id="count-site-kal" class="badge"></span>
         <button class="btn btn-primary" onclick="showAddModal('site-kal')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet('site-kal')">Refresh</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-kal', true)">Refresh</button>
         <button class="btn btn-secondary" onclick="toggleFilterPanel('site-kal')">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-kal"></div>
@@ -166,7 +167,7 @@
         <input type="text" id="search-pvt-dash-sul" class="input" placeholder="Cari...">
         <span id="count-pvt-dash-sul" class="badge"></span>
         <button class="btn btn-primary" id="addPivotBtn" onclick="showAddModal('pvt-dash-sul')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet(state.activePivot)">Refresh</button>
+        <button class="btn btn-secondary" onclick="loadSheet(state.activePivot, true)">Refresh</button>
         <button class="btn btn-secondary" onclick="toggleFilterPanel(state.activePivot)">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-active"></div>

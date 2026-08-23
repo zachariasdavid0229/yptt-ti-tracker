@@ -202,10 +202,51 @@ async function apiCall(action, payload = {}) {
   }
 }
 
+/* ==================== Cache localStorage (TTL 5 menit) ==================== */
+
+const CACHE_TTL = 5 * 60 * 1000;
+
+function cacheKey(name) { return 'yptt_v1_' + name; }
+
+function cacheGet(name) {
+  try {
+    const raw = localStorage.getItem(cacheKey(name));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return { data: obj.data, stale: (Date.now() - obj.t) > CACHE_TTL };
+  } catch (e) { return null; }
+}
+
+function cacheSet(name, data) {
+  try {
+    try {
+      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
+    } catch (quotaErr) {
+      // Kuota penuh: bersihkan cache aplikasi lalu coba sekali lagi
+      Object.keys(localStorage)
+        .filter(k => k.indexOf('yptt_v1_') === 0)
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
+    }
+  } catch (e) { /* kuota tetap tidak cukup - lewati caching */ }
+}
+
+function cacheDel(name) {
+  try { localStorage.removeItem(cacheKey(name)); } catch (e) {}
+}
+
+function setLoadingText(t) {
+  const el = document.getElementById('loadingText');
+  if (el) el.textContent = t;
+}
+function hideLoading() { showLoading(false); }
+
 /* ==================== Loading & Toast ==================== */
 
-function showLoading(show) {
+function showLoading(show, label) {
   document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+  if (label) setLoadingText(label);
+  if (!show) setLoadingText('Memproses data...');
 }
 
 let toastTimer = null;
@@ -239,33 +280,108 @@ function activeSheetKey() {
 async function loadTabData(tabName) {
   try {
     if (tabName === 'dashboard') {
-      const results = await Promise.all([
-        apiCall('kpi'),
-        apiCall('dashboard'),
-        apiCall('site-sul'),
-        apiCall('site-kal')
-      ]);
-      state.kpi = results[0].data;
-      state.dashboard = results[1].data;
-      state.sheets['site-sul'] = results[2].data || [];
-      state.sheets['site-kal'] = results[3].data || [];
-
-      renderHeaderStats();
-      renderKPI();
-      renderMosChart();
-      renderTrendChart();
-      renderDonutChart();
-      renderBarMetricChart();
-      renderMiniTable('dash2026Table', state.dashboard.dashboard_2026);
-      renderMiniTable('dashSulTable', state.dashboard.dashboard_sulawesi);
-      renderMiniTable('pivotKalTable', state.dashboard.pivot_kal);
-      renderLatestTable();
+      await loadDashboard(false);
     } else if (tabName === 'site-sul' || tabName === 'site-kal') {
       await loadSheet(tabName);
     } else if (tabName === 'pivot') {
       await loadSheet(state.activePivot);
     }
   } catch (e) { /* error sudah ditampilkan via toast */ }
+}
+
+/* ==================== Dashboard: lazy loading + cache ==================== */
+
+const DASH_DEFS = [
+  { name: 'kpi', qs: 'action=kpi', label: 'KPI' },
+  { name: 'dashboard', qs: 'action=dashboard', label: 'Pivot & grafik' },
+  { name: 'sheet-site-sul', qs: 'action=site-sul', label: 'Site SUL' },
+  { name: 'sheet-site-kal', qs: 'action=site-kal', label: 'Site KAL' }
+];
+
+function applyDashPiece(name, data) {
+  if (name === 'kpi') state.kpi = data;
+  else if (name === 'dashboard') state.dashboard = data;
+  else if (name === 'sheet-site-sul') state.sheets['site-sul'] = data || [];
+  else if (name === 'sheet-site-kal') state.sheets['site-kal'] = data || [];
+}
+
+// Tahap 1: elemen paling atas langsung tampil
+function renderDashboardStage1() {
+  renderHeaderStats();
+  renderKPI();
+}
+// Tahap 2: grafik
+function renderDashboardStage2() {
+  renderMosChart();
+  renderTrendChart();
+  renderDonutChart();
+  renderBarMetricChart();
+}
+// Tahap 3: tabel + hitung ulang issue
+function renderDashboardStage3() {
+  renderMiniTable('dash2026Table', state.dashboard && state.dashboard.dashboard_2026);
+  renderMiniTable('dashSulTable', state.dashboard && state.dashboard.dashboard_sulawesi);
+  renderMiniTable('pivotKalTable', state.dashboard && state.dashboard.pivot_kal);
+  renderLatestTable();
+  renderHeaderStats();
+}
+
+async function loadDashboard(force) {
+  const values = {};
+  let pending = 0;
+
+  // 1) Render instan dari cache
+  DASH_DEFS.forEach(d => {
+    const c = force ? null : cacheGet(d.name);
+    if (c && c.data !== undefined && !c.stale) values[d.name] = c.data;
+    else pending++;
+  });
+  DASH_DEFS.forEach(d => {
+    if (values[d.name] !== undefined) applyDashPiece(d.name, values[d.name]);
+  });
+
+  showLoading(true);
+  renderDashboardStage1();
+
+  // 2) Semua fresh -> selesai tanpa jaringan
+  if (pending === 0) {
+    setTimeout(() => {
+      renderDashboardStage2();
+      renderDashboardStage3();
+      hideLoading();
+    }, 0);
+    return;
+  }
+
+  // 3) Ambil yang missing/stale secara paralel dengan progress
+  setLoadingText('Mengambil data 0/' + pending + '...');
+  let done = 0;
+
+  await Promise.all(DASH_DEFS
+    .filter(d => values[d.name] === undefined)
+    .map(async d => {
+      try {
+        const res = await fetch(API_BASE_URL + '?' + d.qs, { redirect: 'follow' });
+        const j = await res.json();
+        if (!j.success) throw new Error(j.error || 'gagal memuat');
+        cacheSet(d.name, j.data);
+        values[d.name] = j.data;
+        applyDashPiece(d.name, j.data);
+        if (d.name === 'kpi') renderDashboardStage1(); // KPI tampil lebih dulu
+      } catch (err) {
+        showToast('Gagal memuat ' + d.label + ': ' + err.message, 'error');
+      } finally {
+        done++;
+        setLoadingText('Mengambil data ' + done + '/' + pending + '... (' + d.label + ')');
+      }
+    }));
+
+  // 4) Render tahap lanjutan setelah semua data siap
+  setTimeout(() => {
+    renderDashboardStage2();
+    renderDashboardStage3();
+    hideLoading();
+  }, 0);
 }
 
 /* ==================== Full Dashboard ==================== */
@@ -570,31 +686,40 @@ setInterval(() => {
   if (state.currentTab === 'dashboard') loadTabData('dashboard').catch(() => {});
 }, 300000);
 
-async function loadSheet(sheetKey) {
+async function loadSheet(sheetKey, force = false) {
   const c = cfg(sheetKey);
-  let res;
-  if (c.api === 'pivot') {
-    // GET dengan parameter nama sheet
-    showLoading(true);
-    try {
-      const url = API_BASE_URL + '?action=pivot&name=' + encodeURIComponent(c.sheetName);
-      const r = await fetch(url, { redirect: 'follow' });
-      const j = await r.json();
-      if (!j.success) throw new Error(j.error || 'gagal memuat');
-      res = j;
-    } catch (err) {
-      showLoading(false);
-      showToast('Gagal: ' + err.message, 'error');
-      return;
-    }
-    showLoading(false);
-  } else {
-    res = await apiCall(c.api);
+  const ck = 'sheet:' + sheetKey;
+
+  // Render instan dari cache bila ada
+  const cached = force ? null : cacheGet(ck);
+  if (cached && cached.data !== undefined) {
+    state.sheets[sheetKey] = cached.data;
+    renderCrudTable(sheetKey);
+    buildFilterPanel(sheetKey);
+    if (!cached.stale) return; // masih fresh - tanpa jaringan
   }
 
-  state.sheets[sheetKey] = res.data || [];
-  renderCrudTable(sheetKey);
-  buildFilterPanel(sheetKey);
+  showLoading(true);
+  try {
+    let j;
+    if (c.api === 'pivot') {
+      const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
+        encodeURIComponent(c.sheetName), { redirect: 'follow' });
+      j = await res.json();
+    } else {
+      const res = await fetch(API_BASE_URL + '?action=' + c.api, { redirect: 'follow' });
+      j = await res.json();
+    }
+    if (!j.success) throw new Error(j.error || 'gagal memuat');
+    cacheSet(ck, j.data);
+    state.sheets[sheetKey] = j.data || [];
+    renderCrudTable(sheetKey);
+    buildFilterPanel(sheetKey);
+  } catch (err) {
+    showToast('Gagal: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
 }
 
 function switchPivot(key) {
@@ -1331,9 +1456,10 @@ async function deleteRow(sheetKey, rowIndex) {
   await apiCall(c.actions.del, c.api === 'pivot'
     ? { sheet: c.sheetName, rowIndex: rowIndex }
     : { rowIndex: rowIndex });
+  cacheDel('sheet:' + sheetKey); // invalidasi cache sheet terkait
   closeModal();
   showToast('Data berhasil dihapus');
-  loadSheet(sheetKey);
+  loadSheet(sheetKey, true);
 }
 
 /* ==================== Modal Form (Tambah/Edit) ==================== */
@@ -1441,9 +1567,10 @@ function saveForm() {
   btn.disabled = true;
   apiCall(action, payload)
     .then(() => {
+      cacheDel('sheet:' + ctx.sheetKey); // invalidasi cache sheet terkait
       closeModal();
       showToast(ctx.mode === 'add' ? 'Data berhasil ditambahkan' : 'Data berhasil diperbarui');
-      loadSheet(ctx.sheetKey);
+      loadSheet(ctx.sheetKey, true);
     })
     .catch(() => {})
     .finally(() => { btn.disabled = false; });

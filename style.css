@@ -856,6 +856,26 @@ tr.group-row td {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Progress bar indeterminate */
+.load-bar {
+  width: 220px;
+  height: 6px;
+  background: var(--color-dark-gray);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.load-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--color-cyan);
+  border-radius: 3px;
+  animation: slideIndet 1.2s ease-in-out infinite;
+}
+@keyframes slideIndet {
+  0% { margin-left: -40%; }
+  100% { margin-left: 100%; }
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed;
