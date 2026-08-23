@@ -187,22 +187,31 @@ function fmt(v) {
  * Parse blok pivot pertama di sheet 'Pvt Dash Sul':
  * baris header 'Assignment | MAKASSAR | MANADO | TERNATE | Grand Total'
  * diikuti baris bulan (Jan..Aug) lalu 'Grand Total'.
+ * Posisi kolom dideteksi otomatis (file asli mulai dari kolom B).
  * Return { zones: [...], months: [{label, vals}] } atau null.
  */
 function parsePvtDashBlock(sd) {
   if (!sd || !sd.rows || !sd.rows.length) return null;
   const rows = sd.rows;
 
-  let hIdx = -1;
-  for (let i = 0; i < rows.length; i++) {
-    if (String(rows[i][0]).trim().toLowerCase() === 'assignment') { hIdx = i; break; }
+  // Cari sel bertuliskan 'Assignment' di baris mana pun / kolom mana pun
+  let hIdx = -1, col0 = 0;
+  for (let i = 0; i < rows.length && hIdx < 0; i++) {
+    const limit = Math.min(rows[i].length, 12);
+    for (let c = 0; c < limit; c++) {
+      if (String(rows[i][c]).trim().toLowerCase() === 'assignment') {
+        hIdx = i;
+        col0 = c;
+        break;
+      }
+    }
   }
   if (hIdx < 0 || hIdx + 1 >= rows.length) return null;
 
   const header = rows[hIdx].map(v => String(v).trim());
   const zones = [];
   const zIdx = [];
-  for (let c = 1; c < header.length; c++) {
+  for (let c = col0 + 1; c < header.length; c++) {
     const h = header[c];
     if (!h) continue;
     if (/^grand ?total$/i.test(h)) break;
@@ -213,7 +222,7 @@ function parsePvtDashBlock(sd) {
   const STOP_LABELS = ['sm atp', 'fi ineom', 'hi done', 'connected', 'milestone'];
   const months = [];
   for (let i = hIdx + 1; i < rows.length; i++) {
-    const label = String(rows[i][0]).trim();
+    const label = String(rows[i][col0] === undefined ? '' : rows[i][col0]).trim();
     if (!label) continue;
     if (/^grand ?total$/i.test(label)) break;
     if (STOP_LABELS.includes(label.toLowerCase())) break;

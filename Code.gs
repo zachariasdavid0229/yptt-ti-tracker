@@ -195,15 +195,22 @@ function getSheet_(name, createIfMissing) {
 /**
  * Baca seluruh sheet menjadi array of objects.
  * rowIndex = nomor baris fisik di spreadsheet (2 = baris data pertama).
+ * Aman dari kolom "hantu" (format liar tanpa header): hanya kolom
+ * yang memiliki header pada baris 1 yang dibaca.
  */
 function readSheetObjects_(sheetName) {
   var sheet = getSheet_(sheetName);
-  var range = sheet.getDataRange();
-  var values = range.getValues();
-  if (values.length < 2) return [];
+  if (sheet.getLastRow() < 1) return [];
 
-  // Normalisasi header (trim spasi)
-  var headers = values[0].map(function (h) { return String(h).trim(); });
+  // Tentukan lebar efektif = kolom terakhir yang memiliki header
+  var rawHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headersAll = rawHeaders.map(function (h) { return String(h).trim(); });
+  var eff = headersAll.length;
+  while (eff > 0 && !headersAll[eff - 1]) eff--;
+  if (eff === 0) return [];
+  var headers = headersAll.slice(0, eff);
+
+  var values = sheet.getRange(1, 1, sheet.getLastRow(), eff).getValues();
 
   var rows = [];
   for (var i = 1; i < values.length; i++) {
