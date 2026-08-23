@@ -33,6 +33,40 @@ const WIDE_FIELDS = ['Daily REMARK', 'Remark', 'GAP Analysis', 'Blocking Issues'
   'Add Cost Description', 'Connected Info', 'MOS Info', 'HI Info',
   'Blocking SM & Ineom', 'Blocking BARA', 'Remark INBOUND'];
 
+/* ==================== Smart Dropdown Config ==================== */
+
+// Dropdown statis (pilihan tetap)
+const STATIC_OPTIONS = {
+  'SM Status': ['Work Not Start', '01-Passed', '03-NY SM', 'Progress'],
+  'SM Kitting': ['No Need', 'passed', 'Work Not Start', '01-Passed', 'Progress'],
+  'PTW & EHS': ['No Need', 'passed', 'Work Not Start', '01-Passed', 'Progress'],
+  'SM Dismantle': ['Passed', 'No Need', 'SM Passed', 'Work Not Start', 'Progress'],
+  'SM ATP': ['Work Not Start', '01-Passed', '03-NY SM', 'Progress'],
+  'ATP Passed': ['Work Not Start', '01-Passed', '03-NY SM', 'Progress'],
+  'FI Ineom': ['Work Not Start', '01-Passed', '03-NY SM', 'Progress'],
+  'Asset Ineom': ['Work Not Start', '01-Passed', '03-NY SM', 'Progress'],
+  'Blocking Issues': ['waitting TRM', 'Need Komfirm Tim Planning',
+    'Only Dismantle Rack', 'Dismantle Only Cabinet'],
+  'GAP Analysis': ['Connected', 'Work Not Start', 'Prorgress'],
+  'Status Permit': ['Release', 'Done Req ZTE', 'Og Request', 'Done request CAF ZTE'],
+  'PIC TI': ['YPTT', 'Quintel', 'CV. Puri Tepule Abadi', 'PT. Djaya Sukses Pratama']
+};
+
+// Dropdown dinamis: nilai unik diambil dari data sheet aktif (bebas tambah baru)
+const DYNAMIC_COMBO_COLS = ['Site Name Impl', 'Site ID Impl', 'Work Type', 'SOW Details'];
+
+// Zona untuk Site_SUL (statis); Site_KAL otomatis dinamis dari data
+const ZONES_SUL_STATIC = ['Makassar', 'Manado', 'Ternate', 'Pare Pare', 'Kendari', 'Palu'];
+
+// Opsi untuk kolom semi-bebas (pilih atau ketik sendiri)
+const SEMI_FREE_OPTIONS = {
+  'HI Info': ['Done', 'NY'],
+  'MOS Info': ['Done', 'NY']
+};
+
+// Prefix status yang menampilkan input persen tambahan
+const PERCENT_PREFIXES = ['Done Productivity', 'Ready for Productivity'];
+
 let state = {
   siteSul: [],
   siteKal: [],
@@ -40,7 +74,8 @@ let state = {
   kpi: null,
   mosChart: null,
   currentTab: 'dashboard',
-  page: { 'site-sul': 1, 'site-kal': 1 }
+  page: { 'site-sul': 1, 'site-kal': 1 },
+  filters: { 'site-sul': {}, 'site-kal': {} }
 };
 
 const PAGE_SIZE = 10;
@@ -113,11 +148,13 @@ async function loadTabData(tabName) {
       state.siteSul = res.data || [];
       populateZoneFilter('zoneFilterSul', state.siteSul);
       renderCrudTable('site-sul');
+      buildFilterPanel('site-sul');
     } else if (tabName === 'site-kal') {
       const res = await apiCall('site-kal');
       state.siteKal = res.data || [];
       populateZoneFilter('zoneFilterKal', state.siteKal);
       renderCrudTable('site-kal');
+      buildFilterPanel('site-kal');
     }
   } catch (e) { /* error sudah ditampilkan via toast */ }
 }
@@ -217,6 +254,7 @@ function getFilteredRows(sheetKey) {
   const searchEl = document.getElementById(isSul ? 'searchSul' : 'searchKal');
   const zone = (zoneEl ? zoneEl.value : '').trim().toUpperCase();
   const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  const filters = state.filters[sheetKey] || {};
 
   return rows.filter(r => {
     if (zone && String(r['ZTE ZONE'] === undefined || r['ZTE ZONE'] === null ? '' : r['ZTE ZONE']).trim().toUpperCase() !== zone) return false;
@@ -225,6 +263,13 @@ function getFilteredRows(sheetKey) {
         .map(v => String(v === undefined || v === null ? '' : v).toLowerCase())
         .join(' ');
       if (!hay.includes(q)) return false;
+    }
+    // Filter per kolom
+    for (const col in filters) {
+      const f = String(filters[col]).trim().toLowerCase();
+      if (!f) continue;
+      const cell = String(r[col] === undefined || r[col] === null ? '' : r[col]).trim().toLowerCase();
+      if (!cell.includes(f)) return false; // bertingkat: semua filter harus lolos
     }
     return true;
   });
@@ -316,6 +361,74 @@ function changePage(sheetKey, page) {
     renderCrudTable('site-kal');
   }));
 
+/* ==================== Panel Filter Kolom ==================== */
+
+function toggleFilterPanel(sheetKey) {
+  const panel = document.getElementById('filterPanel-' + sheetKey);
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) buildFilterPanel(sheetKey);
+}
+
+/** Bangun kontrol filter untuk tiap kolom terlihat pada tabel */
+function buildFilterPanel(sheetKey) {
+  const panel = document.getElementById('filterPanel-' + sheetKey);
+
+  const rows = sheetKey === 'site-sul' ? state.siteSul : state.siteKal;
+  if (!rows.length) { panel.innerHTML = '<span class="page-info">Belum ada data</span>'; return; }
+
+  const cols = visibleColumns(rows);
+  const activeFilters = state.filters[sheetKey] || {};
+
+  let html = '<div class="filter-header">' +
+    '<strong>Filter Kolom</strong>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="resetColumnFilters(\'' + sheetKey + '\')">Reset Filter</button>' +
+    '</div><div class="filter-grid">';
+
+  cols.forEach(col => {
+    const val = activeFilters[col] || '';
+    const options = comboOptionsFor(sheetKey, col, rows);
+    const fid = 'flt-' + sheetKey + '-' + datalistId(col);
+    let control;
+
+    if (options && options.length <= 25) {
+      // Dropdown filter (kolom pilihan terbatas / kategorikal)
+      const union = Array.from(new Set(options.concat(distinctValues(rows, col)))).sort();
+      control = '<select onchange="setColumnFilter(\'' + sheetKey + '\', this.dataset.col, this.value)" data-col="' + esc(col) + '">' +
+        '<option value="">Semua</option>' +
+        union.map(o => '<option value="' + esc(o) + '"' +
+          (o.toLowerCase() === val.toLowerCase() ? ' selected' : '') + '>' + esc(truncate(o, 30)) + '</option>').join('') +
+        '</select>';
+    } else {
+      // Input teks dengan debounce
+      control = '<input type="text" value="' + esc(val) + '" placeholder="Ketik untuk filter..." autocomplete="off"' +
+        ' oninput="debouncedColumnFilter(\'' + sheetKey + '\', \'' + esc(col).replace(/'/g, "\\'") + '\', this.value)">';
+    }
+
+    html += '<div class="filter-item"><label>' + esc(col) + '</label>' + control + '</div>';
+  });
+
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function setColumnFilter(sheetKey, col, value) {
+  state.filters[sheetKey][col] = value;
+  state.page[sheetKey] = 1;
+  renderCrudTable(sheetKey);
+}
+
+function debouncedColumnFilter(sheetKey, col, value) {
+  clearTimeout(setColumnFilter._t);
+  setColumnFilter._t = setTimeout(() => setColumnFilter(sheetKey, col, value), 300);
+}
+
+function resetColumnFilters(sheetKey) {
+  state.filters[sheetKey] = {};
+  state.page[sheetKey] = 1;
+  buildFilterPanel(sheetKey);
+  renderCrudTable(sheetKey);
+}
+
 function populateZoneFilter(selectId, rows) {
   const sel = document.getElementById(selectId);
   const current = sel.value;
@@ -387,6 +500,77 @@ async function deleteFromDetail() {
   loadTabData(ctx.sheetKey);
 }
 
+/* ==================== Smart Dropdown Helpers ==================== */
+
+/** Kumpulkan nilai unik terurut dari sebuah kolom */
+function distinctValues(rows, col) {
+  const set = new Set();
+  rows.forEach(r => {
+    const v = String(r[col] === undefined || r[col] === null ? '' : r[col]).trim();
+    if (v) set.add(v);
+  });
+  return Array.from(set).sort();
+}
+
+function datalistId(col) {
+  return 'dl-' + col.replace(/[^a-zA-Z0-9]/g, '-');
+}
+
+/**
+ * Tentukan daftar opsi combo untuk sebuah kolom pada sheet tertentu.
+ * Return null jika kolom tersebut free text biasa.
+ */
+function comboOptionsFor(sheetKey, col, rows) {
+  if (col === 'ZTE ZONE') {
+    return sheetKey === 'site-sul'
+      ? ZONES_SUL_STATIC.slice()
+      : distinctValues(rows, col);
+  }
+  if (STATIC_OPTIONS[col]) {
+    // Gabungkan opsi statis dengan nilai yang sudah ada di data
+    // agar nilai lama tetap tampil di dropdown
+    const inData = distinctValues(rows, col);
+    return Array.from(new Set(STATIC_OPTIONS[col].concat(inData)));
+  }
+  if (DYNAMIC_COMBO_COLS.includes(col)) {
+    return distinctValues(rows, col);
+  }
+  if (SEMI_FREE_OPTIONS[col]) {
+    const inData = distinctValues(rows, col);
+    return Array.from(new Set(SEMI_FREE_OPTIONS[col].concat(inData)));
+  }
+  return null;
+}
+
+/**
+ * Bangun HTML satu field form cerdas.
+ * - Ada opsi      -> <input> + <datalist> (typeahead + bebas tambah nilai baru)
+ * - HI Progress   -> number input persen
+ * - Lainnya       -> text input biasa
+ */
+function smartFieldHTML(sheetKey, col, val, rows) {
+  const name = esc(col);
+  const value = esc(val);
+
+  if (col === 'HI Progress') {
+    const num = String(val).replace(/[^0-9.]/g, '');
+    return '<input type="number" min="0" max="100" step="any" ' +
+      'name="' + name + '" value="' + esc(num) + '" placeholder="0-100">';
+  }
+
+  const options = comboOptionsFor(sheetKey, col, rows);
+  if (options && options.length) {
+    const id = datalistId(col);
+    return '<input type="text" name="' + name + '" value="' + value +
+      '" list="' + id + '" autocomplete="off">' +
+      '<datalist id="' + id + '">' +
+      options.map(o => '<option value="' + esc(o) + '">').join('') +
+      '</datalist>';
+  }
+
+  return '<input type="text" name="' + name + '" value="' + value + '">';
+}
+
 /* ==================== Modal Form (Tambah/Edit) ==================== */
 
 let formContext = null; // { mode:'add'|'edit', sheetKey, rowIndex }
@@ -416,7 +600,8 @@ function showEditModal(sheetKey, rowIndex) {
 function buildForm(data) {
   // Gunakan kolom terlihat jika data sudah dimuat,
   // jika tidak gunakan daftar lengkap ALL_COLUMNS.
-  const refRows = formContext.sheetKey === 'site-sul' ? state.siteSul : state.siteKal;
+  const sheetKey = formContext.sheetKey;
+  const refRows = sheetKey === 'site-sul' ? state.siteSul : state.siteKal;
   const cols = refRows.length ? visibleColumns(refRows) : ALL_COLUMNS;
 
   const html = '<div class="form-grid">' + cols.map(col => {
@@ -425,31 +610,60 @@ function buildForm(data) {
     const isDate = /Date/i.test(col) && !/Info|Upload|Inbond/i.test(col);
     let field;
 
-    if (col === 'ZTE ZONE') {
-      field = '<select name="' + esc(col) + '">' +
-        ['', 'MAKASSAR', 'MANADO', 'TERNATE'].map(z =>
-          '<option value="' + z + '"' + (val === z ? ' selected' : '') + '>' +
-          (z || '-- pilih --') + '</option>').join('') +
-        '</select>';
-    } else if (isWide) {
-      field = '<textarea name="' + esc(col) + '">' + esc(val) + '</textarea>';
-    } else if (isDate) {
+    if (isDate) {
       field = '<input type="date" name="' + esc(col) + '" value="' + esc(toISODate(val)) + '">';
     } else {
-      field = '<input type="text" name="' + esc(col) + '" value="' + esc(val) + '">';
+      field = smartFieldHTML(sheetKey, col, val, refRows);
     }
 
     return '<div class="form-group ' + (isWide ? 'wide' : '') + '">' +
       '<label>' + esc(col) + '</label>' + field + '</div>';
-  }).join('') + '</div>';
+  }).join('');
 
-  document.getElementById('dataForm').innerHTML = html;
+  // Input persen tambahan untuk Site Productivity Status
+  html += '<div class="form-group" id="prodPercentGroup" style="display:none">' +
+    '<label>Persentase (%)</label>' +
+    '<input type="number" min="0" max="100" step="any" name="__prod_percent">' +
+    '</div>';
+
+  html += '</div>';
+
+  const formEl = document.getElementById('dataForm');
+  formEl.innerHTML = html;
+
+  // Toggle input persen sesuai nilai Site Productivity Status
+  const prodInput = formEl.querySelector('[name="Site Productivity Status"]');
+  const percentGroup = formEl.querySelector('#prodPercentGroup');
+  if (prodInput && percentGroup) {
+    const toggle = () => {
+      const v = prodInput.value;
+      percentGroup.style.display =
+        PERCENT_PREFIXES.some(p => v.indexOf(p) === 0) ? '' : 'none';
+    };
+    prodInput.addEventListener('input', toggle);
+    toggle();
+  }
 }
 
 function saveForm() {
   const form = document.getElementById('dataForm');
   const data = {};
   new FormData(form).forEach((value, key) => { data[key] = value; });
+
+  // Gabungkan persen ke Site Productivity Status
+  if (data['__prod_percent'] !== undefined) {
+    const p = String(data['__prod_percent']).trim();
+    delete data['__prod_percent'];
+    if (p && data['Site Productivity Status']) {
+      const base = data['Site Productivity Status']
+        .replace(/\s*\d+(\.\d+)?\s*%\s*$/, '').trim();
+      data['Site Productivity Status'] = base + ' ' + p + '%';
+    }
+  }
+
+  // HI Progress: pastikan berformat persen
+  const hp = String(data['HI Progress'] || '').trim();
+  if (hp && !isNaN(hp)) data['HI Progress'] = hp + '%';
 
   const ctx = formContext;
   const prefix = ctx.sheetKey === 'site-sul' ? 'site-sul' : 'site-kal';
@@ -507,9 +721,9 @@ function esc(v) {
     .replace(/'/g, '&#39;');
 }
 
-function truncate(v) {
+function truncate(v, max = 60) {
   const s = String(v === undefined || v === null ? '' : v);
-  return s.length > 60 ? s.slice(0, 60) + '...' : s;
+  return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
 function isNum(v) {

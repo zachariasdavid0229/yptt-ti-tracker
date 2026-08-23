@@ -345,6 +345,42 @@ body {
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 .page-info { font-size: .82rem; color: var(--text-muted); margin: 0 8px; }
 
+/* ---------- Filter Panel ---------- */
+.filter-panel { padding: 14px 16px; }
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.filter-item { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.filter-item label {
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filter-item select,
+.filter-item input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: .8rem;
+  outline: none;
+  width: 100%;
+}
+.filter-item select:focus,
+.filter-item input:focus { border-color: var(--primary); }
+
 /* ---------- Detail View ---------- */
 .detail-list { display: flex; flex-direction: column; }
 .detail-item {
