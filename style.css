@@ -99,48 +99,22 @@ body::before {
   100% { opacity: 1; transform: scale(1.3); }
 }
 
-.splash-ufo { position: relative; margin-bottom: 6px; animation: floatUfo 3s ease-in-out infinite; }
-@keyframes floatUfo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
-.ufo-body {
+.splash-ufo {
   position: relative;
-  width: 120px; height: 40px;
-  background: linear-gradient(180deg, #1a3a6b, #0a1628);
-  border-radius: 50% 50% 50% 50% / 100% 100% 30% 30%;
-  border: 2px solid rgba(0,212,255,.3);
-  box-shadow: 0 0 40px rgba(0,212,255,.12), inset 0 -20px 40px rgba(0,212,255,.05);
+  animation: floatUfo 3s ease-in-out infinite;
 }
-.ufo-glass {
-  position: absolute;
-  top: -25px; left: 50%; transform: translateX(-50%);
-  width: 60px; height: 35px;
-  background: radial-gradient(ellipse at center, rgba(0,212,255,.2), rgba(0,212,255,.05));
-  border-radius: 50% 50% 50% 50% / 100% 100% 0 0;
-  border: 1px solid rgba(0,212,255,.2);
+@keyframes floatUfo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+
+.splash-logo-img {
+  width: 130px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 26px rgba(0,212,255,.45)) drop-shadow(0 0 60px rgba(0,136,255,.2));
+  animation: logoPulse 1.6s ease-in-out infinite alternate;
 }
-.ufo-light {
-  position: absolute;
-  bottom: -8px; left: 50%; transform: translateX(-50%);
-  width: 20px; height: 8px;
-  background: #00d4ff; border-radius: 50%;
-  box-shadow: 0 0 30px #00d4ff, 0 0 60px rgba(0,212,255,.3);
-  animation: pulseLight 1s ease-in-out infinite alternate;
-}
-@keyframes pulseLight {
-  0% { opacity:.5; transform:translateX(-50%) scale(.8); }
-  100% { opacity:1; transform:translateX(-50%) scale(1.2); }
-}
-.ufo-beam {
-  position: absolute;
-  bottom: -80px; left: 50%; transform: translateX(-50%);
-  width: 4px; height: 60px;
-  background: linear-gradient(to bottom, rgba(0,212,255,.55), transparent);
-  border-radius: 50%;
-  animation: beamSway 2s ease-in-out infinite;
-}
-.ufo-beam-2 { left: calc(50% - 20px); animation-delay: .5s; width: 2px; height: 40px; }
-@keyframes beamSway {
-  0%,100% { transform: translateX(-50%) rotate(0); }
-  50% { transform: translateX(-50%) rotate(5deg); }
+@keyframes logoPulse {
+  0%   { filter: drop-shadow(0 0 16px rgba(0,212,255,.35)); }
+  100% { filter: drop-shadow(0 0 34px rgba(0,212,255,.65)); }
 }
 
 .splash-title { text-align: center; }
@@ -244,8 +218,7 @@ body::before {
   .splash-title h1 { font-size: 30px; }
   .splash-sub { font-size: 13px; letter-spacing: 4px; }
   .splash-loader { width: 230px; }
-  .ufo-body { width: 80px; height: 28px; }
-  .ufo-glass { width: 42px; height: 24px; top: -18px; }
+  .splash-logo-img { width: 88px; }
 }
 
 /* ---------- Scrollbar ---------- */
@@ -429,11 +402,11 @@ body::before {
   border-color: var(--color-cyan);
   box-shadow: 0 4px 30px rgba(0, 180, 216, .3);
 }
-.header-logo span {
-  font-size: .95rem;
-  font-weight: 800;
-  color: var(--color-cyan);
-  letter-spacing: .5px;
+.header-logo img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .header-title-group { display: flex; flex-direction: column; }
