@@ -141,6 +141,7 @@ async function loadTabData(tabName) {
       state.dashboard = results[1].data;
       renderKPI();
       renderMosChart();
+      renderMiniTable('dash2026Table', state.dashboard.dashboard_2026);
       renderMiniTable('dashSulTable', state.dashboard.dashboard_sulawesi);
       renderMiniTable('pivotKalTable', state.dashboard.pivot_kal);
     } else if (tabName === 'site-sul') {
@@ -182,27 +183,81 @@ function fmt(v) {
   return (v === undefined || v === null || v === '') ? '-' : String(v);
 }
 
+/**
+ * Parse blok pivot pertama di sheet 'Pvt Dash Sul':
+ * baris header 'Assignment | MAKASSAR | MANADO | TERNATE | Grand Total'
+ * diikuti baris bulan (Jan..Aug) lalu 'Grand Total'.
+ * Return { zones: [...], months: [{label, vals}] } atau null.
+ */
+function parsePvtDashBlock(sd) {
+  if (!sd || !sd.rows || !sd.rows.length) return null;
+  const rows = sd.rows;
+
+  let hIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toLowerCase() === 'assignment') { hIdx = i; break; }
+  }
+  if (hIdx < 0 || hIdx + 1 >= rows.length) return null;
+
+  const header = rows[hIdx].map(v => String(v).trim());
+  const zones = [];
+  const zIdx = [];
+  for (let c = 1; c < header.length; c++) {
+    const h = header[c];
+    if (!h) continue;
+    if (/^grand ?total$/i.test(h)) break;
+    zones.push(h);
+    zIdx.push(c);
+  }
+
+  const STOP_LABELS = ['sm atp', 'fi ineom', 'hi done', 'connected', 'milestone'];
+  const months = [];
+  for (let i = hIdx + 1; i < rows.length; i++) {
+    const label = String(rows[i][0]).trim();
+    if (!label) continue;
+    if (/^grand ?total$/i.test(label)) break;
+    if (STOP_LABELS.includes(label.toLowerCase())) break;
+    const vals = zIdx.map(c => Number(rows[i][c]) || 0);
+    months.push({ label: label, vals: vals });
+  }
+
+  if (!months.length || !zones.length) return null;
+  return { zones: zones, months: months };
+}
+
 function renderMosChart() {
-  const d26 = state.dashboard && state.dashboard.dashboard_2026;
-  if (!d26 || !d26.headers || !d26.headers.length) return;
+  // Sumber utama: blok pivot 'Assignment x Zona' di sheet Pvt Dash Sul (layout asli)
+  let labels, chartDatasets;
+  const pvt = parsePvtDashBlock(state.dashboard && state.dashboard.pvt_dash_sul);
 
-  const zones = d26.headers.slice(1, -1);
-  const monthRows = d26.rows.filter(r =>
-    MONTHS.includes(String(r[0]).toUpperCase()));
-
-  if (!monthRows.length) return;
-
-  const datasets = zones.map((z, i) => ({
-    label: z,
-    data: monthRows.map(r => Number(r[i + 1]) || 0),
-    backgroundColor: ZONE_COLORS[i % ZONE_COLORS.length]
-  }));
+  if (pvt) {
+    labels = pvt.months.map(m => m.label);
+    chartDatasets = pvt.zones.map((z, i) => ({
+      label: z,
+      data: pvt.months.map(m => m.vals[i]),
+      backgroundColor: ZONE_COLORS[i % ZONE_COLORS.length]
+    }));
+  } else {
+    // Fallback: layout lama [MONTH | zona... | TOTAL] dari Dashboard_2026
+    const d26 = state.dashboard && state.dashboard.dashboard_2026;
+    if (!d26 || !d26.headers || !d26.headers.length) return;
+    const zones = d26.headers.slice(1, -1);
+    const monthRows = d26.rows.filter(r =>
+      MONTHS.includes(String(r[0]).toUpperCase()));
+    if (!monthRows.length) return;
+    labels = monthRows.map(r => r[0]);
+    chartDatasets = zones.map((z, i) => ({
+      label: z,
+      data: monthRows.map(r => Number(r[i + 1]) || 0),
+      backgroundColor: ZONE_COLORS[i % ZONE_COLORS.length]
+    }));
+  }
 
   const ctx = document.getElementById('mosChart').getContext('2d');
   if (state.mosChart) state.mosChart.destroy();
   state.mosChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels: monthRows.map(r => r[0]), datasets: datasets },
+    data: { labels: labels, datasets: chartDatasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -210,24 +265,37 @@ function renderMosChart() {
         x: { stacked: true },
         y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
       },
-      plugins: { legend: { position: 'top' } }
+      plugins: {
+        legend: { position: 'top' },
+        title: { display: !!pvt, text: pvt ? 'Assignment per Bulan per Zona (Pvt Dash Sul)' : '' }
+      }
     }
   });
 }
 
 function renderMiniTable(tableId, sheetData) {
   const el = document.getElementById(tableId);
-  if (!sheetData || !sheetData.headers || !sheetData.headers.length) {
+  if (!sheetData || !sheetData.rows || !sheetData.rows.length) {
     el.innerHTML = '<tbody><tr><td class="empty-state">Belum ada data</td></tr></tbody>';
     return;
   }
+  // Samakan panjang header dengan baris terpanjang (layout sheet asli
+  // sering tidak punya header di baris 1, mis. Dashboard_2026)
+  let width = sheetData.headers.length;
+  sheetData.rows.forEach(r => { if (r.length > width) width = r.length; });
+  const headers = sheetData.headers.slice();
+  while (headers.length < width) headers.push('');
+  const colIdx = Array.from({ length: width }, (_, i) => i);
+
   const thead = '<thead><tr>' +
-    sheetData.headers.map(h => '<th>' + esc(h) + '</th>').join('') +
+    headers.map(h => '<th>' + esc(h) + '</th>').join('') +
     '</tr></thead>';
-  const tbody = '<tbody>' + sheetData.rows.map(row =>
-    '<tr>' + row.map(c =>
-      '<td class="' + (isNum(c) ? 'num' : '') + '">' + esc(c) + '</td>').join('') +
-    '</tr>').join('') + '</tbody>';
+  const tbody = '<tbody>' + sheetData.rows.map(row => {
+    const cells = row.slice();
+    while (cells.length < width) cells.push('');
+    return '<tr>' + cells.map(c =>
+      '<td class="' + (isNum(c) ? 'num' : '') + '">' + esc(c) + '</td>').join('') + '</tr>';
+  }).join('') + '</tbody>';
   el.innerHTML = thead + tbody;
 }
 
