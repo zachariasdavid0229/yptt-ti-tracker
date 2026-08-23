@@ -80,7 +80,16 @@ body {
   padding: 18px;
   margin-bottom: 18px;
 }
-.card h2 { font-size: 1rem; margin-bottom: 14px; color: var(--text); }
+.card h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .95rem;
+  margin-bottom: 14px;
+  padding-left: 12px;
+  border-left: 4px solid var(--primary);
+  line-height: 1.2;
+}
 
 .grid-2 {
   display: grid;
@@ -162,19 +171,33 @@ body {
 
 /* ---------- Tables ---------- */
 .table-card { padding: 0; overflow: hidden; }
-.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 460px;
+  border-radius: 8px;
+}
+.table-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.table-scroll::-webkit-scrollbar-track { background: transparent; }
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #c7d0da;
+  border-radius: 4px;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover { background: #a8b3bf; }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: .82rem;
   min-width: 600px;
 }
 .data-table.compact { font-size: .8rem; min-width: auto; }
+.data-table.dense { font-size: .78rem; min-width: auto; }
 
 .data-table th, .data-table td {
-  border-bottom: 1px solid var(--border);
-  padding: 9px 10px;
+  border-bottom: 1px solid #eef1f5;
+  padding: 9px 12px;
   text-align: left;
   white-space: nowrap;
   vertical-align: top;
@@ -182,15 +205,40 @@ body {
 .data-table th {
   background: #f6f8fa;
   font-weight: 700;
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #57606a;
   position: sticky;
   top: 0;
   z-index: 2;
+  border-bottom: 2px solid #e6ebf1;
 }
-.data-table tbody tr:hover { background: #f0f6ff; }
+.data-table tbody tr:nth-child(even) { background: #fbfcfe; }
+.data-table tbody tr:hover { background: #eff6ff; }
+.data-table td.wrap { white-space: normal; min-width: 140px; max-width: 300px; }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Sel persentase dengan kode warna capaian */
+td.pct-high { color: #1a7f37; font-weight: 600; }
+td.pct-mid  { color: #9a6700; font-weight: 600; }
+td.pct-low  { color: #cf222e; font-weight: 600; }
+
+/* Baris bisa diklik (tabel CRUD) */
 .data-table tbody tr.clickable { cursor: pointer; }
 .data-table tbody tr.clickable:hover { background: #e7f0fd; }
-.data-table td.wrap { white-space: normal; min-width: 160px; max-width: 320px; }
-.data-table td.num { text-align: right; }
+
+/* Baris judul seksi pada tabel dashboard (layout asli) */
+tr.group-row td {
+  background: #eaf2ff !important;
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: .74rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border-left: 4px solid var(--primary);
+  white-space: normal;
+}
 
 .row-actions { display: flex; gap: 6px; }
 .row-actions button { white-space: nowrap; }
@@ -411,6 +459,7 @@ body {
 @media (max-width: 900px) {
   .grid-2 { grid-template-columns: 1fr; }
   .chart-wrap { height: 300px; }
+  .table-scroll { max-height: 360px; }
 }
 @media (max-width: 600px) {
   .app-header { padding: 14px; }

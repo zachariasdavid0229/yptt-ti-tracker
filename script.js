@@ -379,11 +379,33 @@ function renderMiniTable(tableId, sheetData) {
   const thead = '<thead><tr>' +
     headers.map(h => '<th>' + esc(h) + '</th>').join('') +
     '</tr></thead>';
+
   const tbody = '<tbody>' + sheetData.rows.map(row => {
     const cells = row.slice();
     while (cells.length < width) cells.push('');
-    return '<tr>' + cells.map(c =>
-      '<td class="' + (isNum(c) ? 'num' : '') + '">' + esc(c) + '</td>').join('') + '</tr>';
+
+    // Baris judul seksi: hanya satu sel berisi (layout laporan asli,
+    // mis. 'TI SULAWESI', 'MAKASSAR - 2026')
+    const filled = cells.filter(c => String(c).trim() !== '');
+    if (filled.length === 1 && width > 2) {
+      const idx = cells.findIndex(c => String(c).trim() !== '');
+      let grow = '';
+      for (let i = 0; i < idx; i++) grow += '<td></td>';
+      return '<tr class="group-row">' + grow +
+        '<td colspan="' + (width - idx) + '">' + esc(cells[idx]) + '</td></tr>';
+    }
+
+    return '<tr>' + cells.map(c => {
+      let cls = isNum(c) ? 'num' : '';
+      const s = String(c).trim();
+      const m = s.match(/^(\d+(?:\.\d+)?)\s?%$/);
+      if (m) {
+        cls += (cls ? ' ' : '') +
+          (parseFloat(m[1]) >= 90 ? 'pct-high' :
+           parseFloat(m[1]) >= 70 ? 'pct-mid' : 'pct-low');
+      }
+      return '<td class="' + cls + '">' + esc(c) + '</td>';
+    }).join('') + '</tr>';
   }).join('') + '</tbody>';
   el.innerHTML = thead + tbody;
 }
@@ -534,6 +556,7 @@ function renderCrudTable(sheetKey) {
   const rows = getFilteredRows(sheetKey);
   if (countEl) countEl.textContent = rows.length + ' data';
   tableEl.innerHTML = '';
+  tableEl.className = 'data-table dense';
   if (pagEl) pagEl.innerHTML = '';
 
   if (!rows.length) {
