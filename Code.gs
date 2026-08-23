@@ -286,7 +286,7 @@ function getSiteSUL() {
 function addSiteSUL(data) {
   var sheet = getSheet_(SHEETS.SITE_SUL);
   ensureHeaders_(sheet);
-  var row = buildRow_(data);
+  var row = buildRowForSheet_(sheet, data, null);
   sheet.appendRow(row);
   syncAllData();
   return sheet.getLastRow();
@@ -315,7 +315,7 @@ function getSiteKAL() {
 function addSiteKAL(data) {
   var sheet = getSheet_(SHEETS.SITE_KAL);
   ensureHeaders_(sheet);
-  var row = buildRow_(data);
+  var row = buildRowForSheet_(sheet, data, null);
   sheet.appendRow(row);
   syncAllData();
   return sheet.getLastRow();
@@ -341,6 +341,29 @@ function ensureHeaders_(sheet) {
   }
 }
 
+/** Baca header aktual dari baris 1 sheet (mendukung kolom tambahan apa pun) */
+function getHeaders_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  return headers.map(function (h) { return String(h).trim(); });
+}
+
+/**
+ * Susun array nilai satu baris sesuai header aktual sheet.
+ * Kolom yang tidak dikirim dalam `data` dipertahankan nilainya
+ * dari `existing` (untuk update) atau dikosongkan (untuk tambah).
+ */
+function buildRowForSheet_(sheet, data, existingValues) {
+  var headers = getHeaders_(sheet);
+  return headers.map(function (col, i) {
+    if (Object.prototype.hasOwnProperty.call(data, col)) {
+      var v = data[col];
+      return (v === undefined || v === null) ? '' : v;
+    }
+    return existingValues ? existingValues[i] : '';
+  });
+}
+
 /** Ubah object data menjadi array sesuai urutan COLUMNS */
 function buildRow_(data) {
   return COLUMNS.map(function (col) {
@@ -353,7 +376,10 @@ function writeRowAt_(sheetName, rowIndex, data) {
   if (!rowIndex || rowIndex < 2) throw new Error('rowIndex tidak valid');
   var sheet = getSheet_(sheetName);
   ensureHeaders_(sheet);
-  var row = buildRow_(data);
+
+  // Baca nilai lama dan gabungkan supaya kolom yang tidak diedit tidak hilang
+  var existing = sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var row = buildRowForSheet_(sheet, data, existing);
   sheet.getRange(rowIndex, 1, 1, row.length).setValues([row]);
 }
 
@@ -484,9 +510,24 @@ function syncAllData() {
   }
 }
 
+/**
+ * Deteksi kolom wilayah/zona secara adaptif.
+ * Site_SUL memakai 'ZTE ZONE'; Site_KAL (struktur baru) memakai 'Branch'.
+ */
+function zoneColName_(rows) {
+  if (!rows || !rows.length) return 'ZTE ZONE';
+  var keys = Object.keys(rows[0]);
+  var candidates = ['ZTE ZONE', 'Branch', 'Cluster', 'Region', 'Area'];
+  for (var i = 0; i < candidates.length; i++) {
+    if (keys.indexOf(candidates[i]) !== -1) return candidates[i];
+  }
+  return 'ZTE ZONE';
+}
+
 /** Matrix [Month | zone... | TOTAL] berisi jumlah site MOS tiap bulan tahun 2026 */
 function buildDash2026_(rows) {
-  var zones = collectZones_(rows);
+  var zCol = zoneColName_(rows);
+  var zones = collectZones_(rows, zCol);
   var header = ['MONTH'].concat(zones).concat(['TOTAL']);
   var matrix = [header];
 
@@ -496,7 +537,7 @@ function buildDash2026_(rows) {
   });
 
   rows.forEach(function (r) {
-    var zone = normalizeZone_(toStr_(r['ZTE ZONE']), zones);
+    var zone = normalizeZone_(toStr_(r[zCol]), zones);
     if (!zone) return;
     var mosDate = parseDate_(r['MOS']);
     if (!mosDate || mosDate.getFullYear() !== 2026) {
@@ -528,12 +569,13 @@ function buildDash2026_(rows) {
 
 /** Matrix [ZTE ZONE | Total Site | MOS | HI Done | Connected | SM ATP | FI INEOM] */
 function buildZoneSummary_(rows) {
+  var zCol = zoneColName_(rows);
   var header = ['ZTE ZONE', 'Total Site', 'MOS', 'HI Done', 'Connected', 'SM ATP', 'FI INEOM'];
   var matrix = [header];
 
   var groups = {};
   rows.forEach(function (r) {
-    var z = toStr_(r['ZTE ZONE']) || '(KOSONG)';
+    var z = toStr_(r[zCol]) || '(KOSONG)';
     if (!groups[z]) groups[z] = [];
     groups[z].push(r);
   });
@@ -565,12 +607,13 @@ function buildZoneSummary_(rows) {
 
 /** Matrix [ZTE ZONE | Monthly Assignment | Total] */
 function buildZoneMonthly_(rows) {
+  var zCol = zoneColName_(rows);
   var header = ['ZTE ZONE', 'MONTHLY ASSIGNMENT', 'TOTAL'];
   var matrix = [header];
 
   var map = {};
   rows.forEach(function (r) {
-    var z = toStr_(r['ZTE ZONE']) || '(KOSONG)';
+    var z = toStr_(r[zCol]) || '(KOSONG)';
     var mA = toStr_(r['Monthly Assignment']) || '-';
     var key = z + '|||' + mA;
     if (!map[key]) map[key] = { zone: z, month: mA, total: 0 };
@@ -590,10 +633,11 @@ function buildZoneMonthly_(rows) {
   return matrix;
 }
 
-function collectZones_(rows) {
+function collectZones_(rows, zCol) {
+  zCol = zCol || zoneColName_(rows);
   var set = {};
   rows.forEach(function (r) {
-    var z = toStr_(r['ZTE ZONE']);
+    var z = toStr_(r[zCol]);
     if (z) set[z.toUpperCase()] = true;
   });
   var zones = Object.keys(set);

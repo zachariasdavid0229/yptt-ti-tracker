@@ -239,7 +239,11 @@ function renderMiniTable(tableId, sheetData) {
  */
 function visibleColumns(rows) {
   if (!rows.length) return [];
-  const alwaysShow = ['No', 'WID', 'Site ID Impl', 'Site Name Impl', 'ZTE ZONE'];
+  const alwaysShow = ['No', 'WID',
+    resolveCol(rows, ['Site ID Impl', 'Site ID']),
+    resolveCol(rows, ['Site Name Impl', 'Site Name']),
+    zoneColOf(rows)
+  ].filter(Boolean);
   return Object.keys(rows[0])
     .filter(col => col !== 'rowIndex')
     .filter(col =>
@@ -255,11 +259,14 @@ function getFilteredRows(sheetKey) {
   const zone = (zoneEl ? zoneEl.value : '').trim().toUpperCase();
   const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
   const filters = state.filters[sheetKey] || {};
+  const nameCol = resolveCol(rows, ['Site Name Impl', 'Site Name']);
+  const idCol = resolveCol(rows, ['Site ID Impl', 'Site ID']);
+  const zCol = zoneColOf(rows);
 
   return rows.filter(r => {
-    if (zone && String(r['ZTE ZONE'] === undefined || r['ZTE ZONE'] === null ? '' : r['ZTE ZONE']).trim().toUpperCase() !== zone) return false;
+    if (zCol && zone && String(r[zCol] === undefined || r[zCol] === null ? '' : r[zCol]).trim().toUpperCase() !== zone) return false;
     if (q) {
-      const hay = [r['Site Name Impl'], r['Site ID Impl'], r['WID']]
+      const hay = [r[nameCol], r[idCol], r['WID']]
         .map(v => String(v === undefined || v === null ? '' : v).toLowerCase())
         .join(' ');
       if (!hay.includes(q)) return false;
@@ -432,9 +439,11 @@ function resetColumnFilters(sheetKey) {
 function populateZoneFilter(selectId, rows) {
   const sel = document.getElementById(selectId);
   const current = sel.value;
+  const zCol = zoneColOf(rows);
+  if (!zCol) return;
   const zones = [];
   rows.forEach(r => {
-    const z = String(r['ZTE ZONE'] === undefined || r['ZTE ZONE'] === null ? '' : r['ZTE ZONE']).trim();
+    const z = String(r[zCol] === undefined || r[zCol] === null ? '' : r[zCol]).trim();
     if (z && zones.indexOf(z) === -1) zones.push(z);
   });
   zones.sort();
@@ -456,8 +465,10 @@ function showDetailModal(sheetKey, rowIndex) {
   if (!row) { showToast('Baris tidak ditemukan', 'error'); return; }
 
   detailContext = { sheetKey: sheetKey, rowIndex: rowIndex };
+  const nameCol = resolveCol(source, ['Site Name Impl', 'Site Name']);
+  const idCol = resolveCol(source, ['Site ID Impl', 'Site ID']);
   document.getElementById('modalTitle').textContent =
-    'Detail: ' + (row['Site Name Impl'] || row['Site ID Impl'] || row['WID'] || 'Data');
+    'Detail: ' + (row[nameCol] || row[idCol] || row['WID'] || 'Data');
 
   // Tampilkan semua kolom yang memiliki isi
   const entries = Object.keys(row)
@@ -502,6 +513,24 @@ async function deleteFromDetail() {
 
 /* ==================== Smart Dropdown Helpers ==================== */
 
+/**
+ * Cari nama kolom aktual dari daftar kandidat.
+ * Menangani struktur kolom berbeda antara Site_SUL dan Site_KAL,
+ * mis. 'Site Name Impl' vs 'Site Name' atau 'ZTE ZONE' vs 'Branch'.
+ */
+function resolveCol(rows, candidates) {
+  if (!rows.length) return candidates[0];
+  const keys = Object.keys(rows[0]);
+  for (let i = 0; i < candidates.length; i++) {
+    if (keys.includes(candidates[i])) return candidates[i];
+  }
+  return null;
+}
+
+function zoneColOf(rows) {
+  return resolveCol(rows, ['ZTE ZONE', 'Branch', 'Cluster', 'Region', 'Area']);
+}
+
 /** Kumpulkan nilai unik terurut dari sebuah kolom */
 function distinctValues(rows, col) {
   const set = new Set();
@@ -521,7 +550,8 @@ function datalistId(col) {
  * Return null jika kolom tersebut free text biasa.
  */
 function comboOptionsFor(sheetKey, col, rows) {
-  if (col === 'ZTE ZONE') {
+  const zCol = zoneColOf(rows);
+  if (col === zCol) {
     return sheetKey === 'site-sul'
       ? ZONES_SUL_STATIC.slice()
       : distinctValues(rows, col);
