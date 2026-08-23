@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YPTT TI Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>Memproses data...</p>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <h1>YPTT TI Tracker</h1>
+      <p class="subtitle">Monitoring Site TI - Sulawesi &amp; Kalimantan 2026</p>
+    </div>
+    <button id="btnSync" class="btn btn-light" title="Sinkronkan data pivot">Sync Data</button>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="site-sul">Site SUL</button>
+    <button class="tab-btn" data-tab="site-kal">Site KAL</button>
+  </nav>
+
+  <main class="container">
+
+    <!-- ==================== TAB DASHBOARD ==================== -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="kpi-grid" id="kpiGrid">
+        <!-- KPI cards di-render oleh JS -->
+      </div>
+
+      <div class="card">
+        <h2>MOS per Bulan per ZTE ZONE (2026)</h2>
+        <div class="chart-wrap">
+          <canvas id="mosChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Ringkasan ZTE ZONE (Sulawesi)</h2>
+          <div class="table-scroll">
+            <table id="dashSulTable" class="data-table compact"></table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Pivot Kalimantan</h2>
+          <div class="table-scroll">
+            <table id="pivotKalTable" class="data-table compact"></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB SITE SUL ==================== -->
+    <section id="tab-site-sul" class="tab-panel">
+      <div class="toolbar">
+        <label for="zoneFilterSul">Filter ZTE ZONE:</label>
+        <select id="zoneFilterSul" class="select">
+          <option value="">-- Semua Zone --</option>
+        </select>
+        <input type="text" id="searchSul" class="input" placeholder="Cari site / WID...">
+        <span id="countSul" class="badge"></span>
+        <button class="btn btn-primary" onclick="showAddModal('site-sul')">+ Tambah Data</button>
+        <button class="btn btn-secondary" onclick="loadTabData('site-sul')">Refresh</button>
+      </div>
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table id="table-site-sul" class="data-table"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB SITE KAL ==================== -->
+    <section id="tab-site-kal" class="tab-panel">
+      <div class="toolbar">
+        <label for="zoneFilterKal">Filter ZTE ZONE:</label>
+        <select id="zoneFilterKal" class="select">
+          <option value="">-- Semua Zone --</option>
+        </select>
+        <input type="text" id="searchKal" class="input" placeholder="Cari site / WID...">
+        <span id="countKal" class="badge"></span>
+        <button class="btn btn-primary" onclick="showAddModal('site-kal')">+ Tambah Data</button>
+        <button class="btn btn-secondary" onclick="loadTabData('site-kal')">Refresh</button>
+      </div>
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table id="table-site-kal" class="data-table"></table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Tambah/Edit -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Tambah Data</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="dataForm"></form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button class="btn btn-primary" id="btnSave" onclick="saveForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    YPTT TI Tracker &copy; 2026 &mdash; Data source: Google Spreadsheet
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
