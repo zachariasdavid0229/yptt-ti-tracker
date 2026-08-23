@@ -945,6 +945,18 @@ function smartFieldHTML(sheetKey, col, val, rows) {
       '" value="' + esc(num) + '" placeholder="0-100">';
   }
 
+  // ZTE ZONE pada Site_SUL: dropdown tetap (3 pilihan wajib)
+  if (col === zoneColOf(rows) && sheetKey === 'site-sul') {
+    let opts = ZONES_SUL_STATIC.slice();
+    const sv = String(val || '').trim();
+    if (sv && !opts.includes(sv)) opts.unshift(sv); // pertahankan nilai lama bila berbeda
+    return '<select name="' + name + '">' +
+      '<option value="">-- pilih --</option>' +
+      opts.map(o => '<option value="' + esc(o) + '"' +
+        (o.toLowerCase() === sv.toLowerCase() ? ' selected' : '') + '>' + esc(o) + '</option>').join('') +
+      '</select>';
+  }
+
   const options = comboOptionsFor(sheetKey, col, rows);
   if (options && options.length) {
     const id = datalistId(col);
