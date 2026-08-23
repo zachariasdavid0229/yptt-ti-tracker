@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260829">
+  <link rel="stylesheet" href="style.css?v=20260830">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -41,34 +41,74 @@
 
     <!-- ==================== TAB DASHBOARD ==================== -->
     <section id="tab-dashboard" class="tab-panel active">
+
+      <!-- ===== HEADER DASHBOARD ===== -->
+      <header class="dashboard-header">
+        <div class="header-top">
+          <div class="header-left">
+            <div class="header-logo"><span>YPTT</span></div>
+            <div class="header-title-group">
+              <div class="header-title"><span class="icon">📊</span>YPTT TI TRACKER</div>
+              <div class="header-subtitle">Monitoring Site TI - <span>Sulawesi &amp; Kalimantan</span> 2026</div>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="header-year">📅 2026</div>
+            <button class="header-refresh" onclick="refreshData()" title="Refresh Data">🔄</button>
+          </div>
+        </div>
+        <div class="header-stats" id="headerStats"></div>
+      </header>
+
+      <!-- ===== KPI CARDS ===== -->
       <div class="kpi-grid" id="kpiGrid"></div>
 
+      <!-- ===== CHARTS ===== -->
       <div class="card">
-        <h2>Assignment per Bulan per Zona</h2>
+        <h2>📈 Assignment per Bulan per Zona</h2>
         <div class="chart-wrap">
           <canvas id="mosChart"></canvas>
         </div>
       </div>
 
-      <div class="card">
-        <h2>Dashboard 2026 (sheet asli)</h2>
-        <div class="table-scroll">
-          <div id="dash2026Table" class="mini-stack"></div>
+      <div class="grid-2">
+        <div class="card" id="trendCard">
+          <h2>🚀 Trend Pencapaian per Bulan</h2>
+          <div class="chart-wrap-sm"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>🗺️ Distribusi Zona</h2>
+          <div class="chart-wrap-sm"><canvas id="donutChart"></canvas></div>
+          <div id="donutLegend" class="donut-legend"></div>
         </div>
       </div>
 
       <div class="grid-2">
         <div class="card">
-          <h2>Ringkasan Sulawesi</h2>
-          <div class="table-scroll">
-            <div id="dashSulTable" class="mini-stack"></div>
-          </div>
+          <h2>📊 MOS vs HI vs Connected per Zona</h2>
+          <div class="chart-wrap-sm"><canvas id="barMetricChart"></canvas></div>
         </div>
         <div class="card">
-          <h2>Pivot Kalimantan</h2>
-          <div class="table-scroll">
-            <div id="pivotKalTable" class="mini-stack"></div>
-          </div>
+          <h2>📋 Ringkasan Sulawesi</h2>
+          <div class="mini-stack" id="dashSulTable"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Dashboard 2026 (sheet asli)</h2>
+        <div class="mini-stack" id="dash2026Table"></div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Pivot Kalimantan</h2>
+        <div class="mini-stack" id="pivotKalTable"></div>
+      </div>
+
+      <!-- ===== LATEST DATA ===== -->
+      <div class="card">
+        <h2>🆕 5 Data Terbaru</h2>
+        <div class="table-scroll">
+          <table id="latestTable" class="data-table dense"></table>
         </div>
       </div>
     </section>
@@ -163,6 +203,6 @@
     YPTT TI Tracker &copy; 2026 &mdash; Data source: Google Spreadsheet
   </footer>
 
-  <script src="script.js?v=20260829"></script>
+  <script src="script.js?v=20260830"></script>
 </body>
 </html>

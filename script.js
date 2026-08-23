@@ -239,14 +239,27 @@ function activeSheetKey() {
 async function loadTabData(tabName) {
   try {
     if (tabName === 'dashboard') {
-      const results = await Promise.all([apiCall('kpi'), apiCall('dashboard')]);
+      const results = await Promise.all([
+        apiCall('kpi'),
+        apiCall('dashboard'),
+        apiCall('site-sul'),
+        apiCall('site-kal')
+      ]);
       state.kpi = results[0].data;
       state.dashboard = results[1].data;
+      state.sheets['site-sul'] = results[2].data || [];
+      state.sheets['site-kal'] = results[3].data || [];
+
+      renderHeaderStats();
       renderKPI();
       renderMosChart();
+      renderTrendChart();
+      renderDonutChart();
+      renderBarMetricChart();
       renderMiniTable('dash2026Table', state.dashboard.dashboard_2026);
       renderMiniTable('dashSulTable', state.dashboard.dashboard_sulawesi);
       renderMiniTable('pivotKalTable', state.dashboard.pivot_kal);
+      renderLatestTable();
     } else if (tabName === 'site-sul' || tabName === 'site-kal') {
       await loadSheet(tabName);
     } else if (tabName === 'pivot') {
@@ -254,6 +267,308 @@ async function loadTabData(tabName) {
     }
   } catch (e) { /* error sudah ditampilkan via toast */ }
 }
+
+/* ==================== Full Dashboard ==================== */
+
+function pctOf(part, total) {
+  if (!total) return '0%';
+  return Math.round(part / total * 100) + '%';
+}
+
+function isDoneVal(v) {
+  const s = String(v === undefined || v === null ? '' : v).trim().toUpperCase();
+  if (s === '' || ['-', 'N', 'NO', 'FALSE', 'NULL'].includes(s)) return false;
+  if (s.includes('PENDING') || s.includes('BELUM')) return false;
+  return true;
+}
+
+function countIssues() {
+  let n = 0;
+  ['site-sul', 'site-kal'].forEach(k => {
+    rowsOf(k).forEach(r => {
+      if (String(r['Blocking Issues'] === undefined || r['Blocking Issues'] === null ? '' : r['Blocking Issues']).trim() !== '') n++;
+    });
+  });
+  return n;
+}
+
+function renderHeaderStats() {
+  const kpi = state.kpi || {};
+  const stats = [
+    { icon: '🛰️', value: fmt(kpi.total_mos), label: 'Total MOS' },
+    { icon: '✅', value: fmt(kpi.total_hi_done), label: 'HI Done' },
+    { icon: '🔗', value: fmt(kpi.total_connected), label: 'Connected' },
+    { icon: '⚡', value: fmt(kpi.total_sm_atp), label: 'SM ATP' },
+    { icon: '📋', value: fmt(kpi.total_fi_ineom), label: 'FI INEOM' },
+    { icon: '⚠️', value: fmt(countIssues()), label: 'Issue / Blocking', danger: true }
+  ];
+  const el = document.getElementById('headerStats');
+  if (!el) return;
+  el.innerHTML = stats.map(s =>
+    '<div class="stat-item"' + (s.danger ? ' style="border-color:rgba(255,23,68,.25)"' : '') + '>' +
+      '<span class="stat-icon">' + s.icon + '</span>' +
+      '<div class="stat-info">' +
+        '<span class="stat-value"' + (s.danger ? ' style="color:#ff1744"' : '') + '>' + esc(s.value) + '</span>' +
+        '<span class="stat-label">' + esc(s.label) + '</span>' +
+      '</div>' +
+    '</div>').join('');
+}
+
+/** Statistik MOS / HI / Connected per zona dari data master */
+function computeZoneStats() {
+  const stats = {};
+  ['site-sul', 'site-kal'].forEach(k => {
+    const rows = rowsOf(k);
+    const zc = zoneColOf(rows);
+    rows.forEach(r => {
+      const z = String(zc ? r[zc] : '').trim() || '(KOSONG)';
+      if (!stats[z]) stats[z] = { total: 0, mos: 0, hi: 0, conn: 0 };
+      const s = stats[z];
+      s.total++;
+      if (String(r['MOS'] === undefined ? '' : r['MOS']).trim() !== '') s.mos++;
+      if (isDoneVal(r['HI Done'])) s.hi++;
+      if (isDoneVal(r['Connected Date']) || isDoneVal(r['Connected Info'])) s.conn++;
+    });
+  });
+  return stats;
+}
+
+/**
+ * Parse blok TI SULAWESI pada sheet Dashboard_2026:
+ * baris penanda berisi 'Qty' & 'Percentage', lalu baris metrik dengan
+ * pola triplet [Plan | Ach | %] per bulan. Return {months, series}.
+ */
+function parseDash2026Trend(sd) {
+  try {
+    if (!sd || !sd.rows || !sd.rows.length) return null;
+    const rows = sd.rows;
+
+    let mi = -1, qtyCol = -1, planCol = -1;
+    for (let i = 0; i < rows.length && mi < 0; i++) {
+      for (let c = 0; c < rows[i].length; c++) {
+        if (String(rows[i][c]).trim().toUpperCase() === 'QTY') {
+          // pastikan ada 'Plan' setelahnya di baris yang sama
+          for (let c2 = c + 1; c2 < Math.min(c + 4, rows[i].length); c2++) {
+            if (String(rows[i][c2]).trim().toUpperCase() === 'PLAN') {
+              mi = i; qtyCol = c; planCol = c2; break;
+            }
+          }
+        }
+        if (mi >= 0) break;
+      }
+    }
+    if (mi < 0 || planCol < 0) return null;
+
+    // Label bulan dari baris bertuliskan 'Total Jan' dst (baris di atas marker)
+    let months = [];
+    for (let i = mi - 1; i >= 0 && !months.length; i--) {
+      for (let c = planCol; c < rows[i].length; c += 3) {
+        const m = String(rows[i][c]).match(/total\s+(\w+)/i);
+        if (m) months.push(m[1].substring(0, 3).toUpperCase());
+      }
+    }
+
+    const METRICS = ['MOS', 'HI DONE', 'CONNECTED', 'SM ATP', 'FI INEOM'];
+    const series = [];
+    for (let i = mi + 1; i < rows.length; i++) {
+      const r = rows[i];
+      let label = '';
+      for (let c = 0; c < Math.min(3, r.length); c++) {
+        const v = String(r[c]).trim();
+        if (v) { label = v; break; }
+      }
+      if (!label) continue; // baris kosong
+      const lu = label.toUpperCase();
+      if (lu.includes('KALIMANT') || lu.includes('SULAWESI')) break; // seksi berikut
+      if (!METRICS.some(m => lu === m || lu.startsWith(m))) {
+        // bukan baris metrik yang dikenal -> kemungkinan seksi selesai
+        if (series.length) break;
+        continue;
+      }
+      const ach = [];
+      for (let c = planCol + 1; c < r.length; c += 3) {
+        ach.push(Number(r[c]) || 0);
+      }
+      series.push({ label: label, data: ach });
+    }
+
+    if (!series.length) return null;
+    if (!months.length || months.length < series[0].data.length) {
+      months = series[0].data.map((_, i) => 'B' + (i + 1));
+    }
+    return { months: months.slice(0, series[0].data.length), series: series };
+  } catch (e) { return null; }
+}
+
+const TREND_COLORS = ['#00b4d8', '#00c853', '#ffab00', '#b197fc', '#ff6b81'];
+
+function renderTrendChart() {
+  const card = document.getElementById('trendCard');
+  const t = parseDash2026Trend(state.dashboard && state.dashboard.dashboard_2026);
+  if (!t) { if (card) card.style.display = 'none'; return; }
+  if (card) card.style.display = '';
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (state.trendChart) state.trendChart.destroy();
+  state.trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: t.months,
+      datasets: t.series.map((s, i) => ({
+        label: s.label,
+        data: s.data,
+        borderColor: TREND_COLORS[i % TREND_COLORS.length],
+        backgroundColor: 'transparent',
+        tension: .35,
+        pointRadius: 3,
+        pointBackgroundColor: TREND_COLORS[i % TREND_COLORS.length]
+      }))
+    },
+    options: chartLineOptions()
+  });
+}
+
+function renderDonutChart() {
+  const stats = computeZoneStats();
+  const entries = Object.entries(stats).sort((a, b) => b[1].total - a[1].total);
+  const labels = entries.map(e => e[0]);
+  const totals = entries.map(e => e[1].total);
+
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  if (state.donutChart) state.donutChart.destroy();
+  state.donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: totals,
+        backgroundColor: ZONE_COLORS.concat(['#5a7a9a', '#8899aa', '#e8f0fe']),
+        borderColor: '#0a1628',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {} }
+      }
+    }
+  });
+
+  const grand = totals.reduce((a, b) => a + b, 0);
+  const legEl = document.getElementById('donutLegend');
+  if (legEl) {
+    legEl.innerHTML = entries.map((e, i) =>
+      '<span class="dl-item"><span class="dl-dot" style="background:' +
+      ZONE_COLORS.concat(['#5a7a9a', '#8899aa', '#e8f0fe'])[i % 8] + '"></span>' +
+      esc(e[0]) + ': <b>' + e[1].total + '</b> (' + pctOf(e[1].total, grand) + ')</span>').join('');
+  }
+}
+
+function renderBarMetricChart() {
+  const stats = computeZoneStats();
+  const entries = Object.entries(stats).sort((a, b) => b[1].mos - a[1].mos);
+  const labels = entries.map(e => e[0]);
+
+  const ctx = document.getElementById('barMetricChart').getContext('2d');
+  if (state.barMetricChart) state.barMetricChart.destroy();
+  state.barMetricChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'MOS', data: entries.map(e => e[1].mos), backgroundColor: '#2d6bb8' },
+        { label: 'HI Done', data: entries.map(e => e[1].hi), backgroundColor: '#00c853' },
+        { label: 'Connected', data: entries.map(e => e[1].conn), backgroundColor: '#2979ff' }
+      ]
+    },
+    options: chartLineOptions(false)
+  });
+}
+
+/** Opsi umum chart tema gelap */
+function chartLineOptions(stackedY = false) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        stacked: stackedY === true,
+        grid: { color: CHART_THEME.grid },
+        ticks: { color: CHART_THEME.ticks }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0, color: CHART_THEME.ticks },
+        grid: { color: CHART_THEME.grid }
+      }
+    },
+    plugins: {
+      legend: { position: 'top', labels: { color: CHART_THEME.text, font: { size: 11 } } }
+    }
+  };
+}
+
+/** Tabel 5 data terbaru (gabungan SUL+KAL, baris terakhir di sheet) */
+function renderLatestTable() {
+  const el = document.getElementById('latestTable');
+  if (!el) return;
+
+  const combine = [];
+  ['site-sul', 'site-kal'].forEach(k => {
+    rowsOf(k).forEach(r => combine.push({ key: k, row: r }));
+  });
+  combine.sort((a, b) => b.row.rowIndex - a.row.rowIndex);
+  const top = combine.slice(0, 5);
+
+  if (!top.length) {
+    el.innerHTML = '<tbody><tr><td class="empty-state">Belum ada data</td></tr></tbody>';
+    return;
+  }
+
+  const thead = '<thead><tr>' +
+    ['WID', 'Site Name', 'Zona', 'MOS', 'HI Done', 'Connected', 'SM Status', 'Aksi']
+      .map(h => '<th>' + h + '</th>').join('') +
+    '</tr></thead>';
+
+  const tbody = '<tbody>' + top.map(item => {
+    const r = item.row;
+    const nameCol = resolveCol([r], ['Site Name Impl', 'Site Name']);
+    const zCol = zoneColOf([r]);
+    const badge = badgeHTML(r['SM Status']);
+    return '<tr class="clickable" onclick="showDetailModal(\'' + item.key + '\', ' + r.rowIndex + ')">' +
+      '<td>' + esc(truncate(r['WID'], 28)) + '</td>' +
+      '<td class="wrap">' + esc(truncate(nameCol ? r[nameCol] : '', 30)) + '</td>' +
+      '<td>' + esc(zCol ? truncate(r[zCol], 16) : '-') + '</td>' +
+      '<td>' + esc(fmt(r['MOS'])) + '</td>' +
+      '<td>' + esc(fmt(isDoneVal(r['HI Done']) ? '✔' : '-')) + '</td>' +
+      '<td>' + esc(fmt(isDoneVal(r['Connected Date']) ? '✔' : '-')) + '</td>' +
+      '<td>' + (badge || esc(fmt(r['SM Status']))) + '</td>' +
+      '<td><button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showDetailModal(\'' +
+        item.key + '\', ' + r.rowIndex + ')">👁 Detail</button></td>' +
+    '</tr>';
+  }).join('') + '</tbody>';
+
+  el.innerHTML = thead + tbody;
+  applyFreeze(el, 8);
+}
+
+/** Tombol refresh header dengan animasi putar */
+async function refreshData() {
+  const btn = document.querySelector('.header-refresh');
+  if (btn) btn.classList.add('spinning');
+  showToast('Menyegarkan data...');
+  await loadTabData('dashboard').catch(() => {});
+  setTimeout(() => { if (btn) btn.classList.remove('spinning'); }, 600);
+}
+
+// Auto-refresh dashboard tiap 5 menit saat tab dashboard terbuka
+setInterval(() => {
+  if (state.currentTab === 'dashboard') loadTabData('dashboard').catch(() => {});
+}, 300000);
 
 async function loadSheet(sheetKey) {
   const c = cfg(sheetKey);
@@ -301,19 +616,21 @@ function switchPivot(key) {
 
 function renderKPI() {
   const kpi = state.kpi || {};
+  const total = Number(kpi.total_site) || 0;
   const cards = [
     { icon: '📡', label: 'Total Site', value: fmt(kpi.total_site), cls: '' },
-    { icon: '🛰️', label: 'Total MOS', value: fmt(kpi.total_mos), cls: 'kpi-mos' },
-    { icon: '✅', label: 'Total HI Done', value: fmt(kpi.total_hi_done), cls: 'kpi-hi' },
-    { icon: '🔗', label: 'Connected', value: fmt(kpi.total_connected), cls: 'kpi-connect' },
-    { icon: '📈', label: 'SM ATP', value: fmt(kpi.total_sm_atp), cls: 'kpi-atp' },
-    { icon: '🧾', label: 'FI INEOM', value: fmt(kpi.total_fi_ineom), cls: 'kpi-ineom' }
+    { icon: '🛰️', label: 'Total MOS', value: fmt(kpi.total_mos), pct: pctOf(kpi.total_mos, total), cls: 'kpi-mos' },
+    { icon: '✅', label: 'Total HI Done', value: fmt(kpi.total_hi_done), pct: pctOf(kpi.total_hi_done, total), cls: 'kpi-hi' },
+    { icon: '🔗', label: 'Connected', value: fmt(kpi.total_connected), pct: pctOf(kpi.total_connected, total), cls: 'kpi-connect' },
+    { icon: '⚡', label: 'SM ATP', value: fmt(kpi.total_sm_atp), pct: pctOf(kpi.total_sm_atp, total), cls: 'kpi-atp' },
+    { icon: '🧾', label: 'FI INEOM', value: fmt(kpi.total_fi_ineom), pct: pctOf(kpi.total_fi_ineom, total), cls: 'kpi-ineom' }
   ];
   document.getElementById('kpiGrid').innerHTML = cards.map(c =>
     '<div class="kpi-card ' + c.cls + '">' +
       '<div class="kpi-icon">' + c.icon + '</div>' +
       '<div class="kpi-label">' + esc(c.label) + '</div>' +
       '<div class="kpi-value">' + esc(c.value) + '</div>' +
+      (c.pct ? '<div class="kpi-pct">' + esc(c.pct) + ' dari total site</div>' : '') +
     '</div>').join('');
 }
 
