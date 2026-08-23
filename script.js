@@ -310,12 +310,18 @@ function renderDashboardStage1() {
   renderHeaderStats();
   renderKPI();
 }
-// Tahap 2: grafik
+// Tahap 2: grafik (masing-masing aman; satu error tidak mematikan lainnya)
+function safeChart(label, fn) {
+  try { fn(); }
+  catch (e) { console.error('Chart "' + label + '" gagal:', e); }
+}
 function renderDashboardStage2() {
-  renderMosChart();
-  renderTrendChart();
-  renderDonutChart();
-  renderBarMetricChart();
+  safeChart('Assignment', renderMosChart);
+  setTimeout(() => {
+    safeChart('Trend', renderTrendChart);
+    safeChart('Donut', renderDonutChart);
+    safeChart('Bar Metrik', renderBarMetricChart);
+  }, 0);
 }
 // Tahap 3: tabel + hitung ulang issue
 function renderDashboardStage3() {
@@ -529,7 +535,8 @@ function renderTrendChart() {
   if (!t) { if (card) card.style.display = 'none'; return; }
   if (card) card.style.display = '';
 
-  const ctx = document.getElementById('trendChart').getContext('2d');
+  const ctx = getCtx('trendChart');
+  if (!ctx) return;
   if (state.trendChart) state.trendChart.destroy();
   state.trendChart = new Chart(ctx, {
     type: 'line',
@@ -555,7 +562,8 @@ function renderDonutChart() {
   const labels = entries.map(e => e[0]);
   const totals = entries.map(e => e[1].total);
 
-  const ctx = document.getElementById('donutChart').getContext('2d');
+  const ctx = getCtx('donutChart');
+  if (!ctx) return;
   if (state.donutChart) state.donutChart.destroy();
   state.donutChart = new Chart(ctx, {
     type: 'doughnut',
@@ -594,7 +602,8 @@ function renderBarMetricChart() {
   const entries = Object.entries(stats).sort((a, b) => b[1].mos - a[1].mos);
   const labels = entries.map(e => e[0]);
 
-  const ctx = document.getElementById('barMetricChart').getContext('2d');
+  const ctx = getCtx('barMetricChart');
+  if (!ctx) return;
   if (state.barMetricChart) state.barMetricChart.destroy();
   state.barMetricChart = new Chart(ctx, {
     type: 'bar',
@@ -879,6 +888,12 @@ function tryLongFormatPvt(sd) {
   } catch (e) { return null; }
 }
 
+function getCtx(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.getContext) return null;
+  return el.getContext('2d');
+}
+
 function renderMosChart() {
   // Prioritas 1: tabel input reguler format panjang (Pvt Dash Sul baru)
   // Prioritas 2: blok pivot lama 'Assignment x Zona'
@@ -913,7 +928,8 @@ function renderMosChart() {
     }));
   }
 
-  const ctx = document.getElementById('mosChart').getContext('2d');
+  const ctx = getCtx('mosChart');
+  if (!ctx) return;
   if (state.mosChart) state.mosChart.destroy();
   state.mosChart = new Chart(ctx, {
     type: 'bar',
