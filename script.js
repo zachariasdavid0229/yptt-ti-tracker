@@ -3,7 +3,12 @@
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyMFXVcUZtsUDdchmscpgmBtvgMCN-66kP5iMjBnJwJ1aNeZ1kxGRKi-oMzAYW27PXs/exec';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const ZONE_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
+const ZONE_COLORS = ['#2d6bb8', '#00b4d8', '#4a90d9', '#0077b6', '#8899aa'];
+const CHART_THEME = {
+  text: '#e8f0fe',
+  ticks: '#8899aa',
+  grid: 'rgba(0, 119, 182, 0.2)'
+};
 const PAGE_SIZE = 10;
 
 /* ==================== Konfigurasi Sheet ==================== */
@@ -261,15 +266,16 @@ function switchPivot(key) {
 function renderKPI() {
   const kpi = state.kpi || {};
   const cards = [
-    { label: 'Total Site', value: fmt(kpi.total_site), cls: '' },
-    { label: 'Total MOS', value: fmt(kpi.total_mos), cls: 'kpi-mos' },
-    { label: 'Total HI Done', value: fmt(kpi.total_hi_done), cls: 'kpi-hi' },
-    { label: 'Connected', value: fmt(kpi.total_connected), cls: 'kpi-connect' },
-    { label: 'SM ATP', value: fmt(kpi.total_sm_atp), cls: 'kpi-atp' },
-    { label: 'FI INEOM', value: fmt(kpi.total_fi_ineom), cls: 'kpi-ineom' }
+    { icon: '📡', label: 'Total Site', value: fmt(kpi.total_site), cls: '' },
+    { icon: '🛰️', label: 'Total MOS', value: fmt(kpi.total_mos), cls: 'kpi-mos' },
+    { icon: '✅', label: 'Total HI Done', value: fmt(kpi.total_hi_done), cls: 'kpi-hi' },
+    { icon: '🔗', label: 'Connected', value: fmt(kpi.total_connected), cls: 'kpi-connect' },
+    { icon: '📈', label: 'SM ATP', value: fmt(kpi.total_sm_atp), cls: 'kpi-atp' },
+    { icon: '🧾', label: 'FI INEOM', value: fmt(kpi.total_fi_ineom), cls: 'kpi-ineom' }
   ];
   document.getElementById('kpiGrid').innerHTML = cards.map(c =>
     '<div class="kpi-card ' + c.cls + '">' +
+      '<div class="kpi-icon">' + c.icon + '</div>' +
       '<div class="kpi-label">' + esc(c.label) + '</div>' +
       '<div class="kpi-value">' + esc(c.value) + '</div>' +
     '</div>').join('');
@@ -357,10 +363,24 @@ function renderMosChart() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: { stacked: true },
-        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+        x: {
+          stacked: true,
+          grid: { color: CHART_THEME.grid },
+          ticks: { color: CHART_THEME.ticks }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { precision: 0, color: CHART_THEME.ticks },
+          grid: { color: CHART_THEME.grid }
+        }
       },
-      plugins: { legend: { position: 'top' } }
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: CHART_THEME.text, font: { size: 12 } }
+        }
+      }
     }
   });
 }
