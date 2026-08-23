@@ -106,6 +106,24 @@ function handleRequest_(method, e) {
         result = ok_(getKPI(), 'Data KPI berhasil diambil');
         break;
 
+      // ---------- GENERIC PIVOT TABLE CRUD ----------
+      // GET  ?action=pivot&name=Pvt%20Dash%20Sul
+      // POST {action:'pivot-add'|'pivot-update'|'pivot-delete', sheet:'...', data/rowIndex}
+      case 'pivot':
+        result = ok_(readSheetObjects_(validPivotSheet_(body.name || params.name)), 'Data berhasil diambil');
+        break;
+      case 'pivot-add':
+        result = ok_({ rowIndex: addPivotRow_(validPivotSheet_(body.sheet), body.data || {}) }, 'Data berhasil ditambahkan');
+        break;
+      case 'pivot-update':
+        updateRowAt_(validPivotSheet_(body.sheet), body.rowIndex, body.data || {});
+        result = ok_({}, 'Data berhasil diperbarui');
+        break;
+      case 'pivot-delete':
+        deleteRowAt_(validPivotSheet_(body.sheet), body.rowIndex);
+        result = ok_({}, 'Data berhasil dihapus');
+        break;
+
       // ---------- CREATE (POST) ----------
       case 'add-site-sul':
         result = ok_({ rowIndex: addSiteSUL(body.data || {}) }, 'Data berhasil ditambahkan');
@@ -280,6 +298,43 @@ function writeMatrix_(sheetName, matrix) {
   });
   sheet.getRange(1, 1, normalized.length, maxLen).setValues(normalized);
   sheet.getRange(1, 1, 1, matrix[0].length).setFontWeight('bold');
+}
+
+/* ============================================================
+ * GENERIC PIVOT TABLE CRUD (format panjang, header baris 1)
+ * Sheet yang diizinkan + skema headernya.
+ * ============================================================ */
+
+var PIVOT_HEADERS = {
+  'Pvt Dash Sul': ['PO Year', 'Kategori', 'Bulan', 'Zona', 'Jumlah'],
+  'Pivot Kal': ['PO Year', 'Kategori', 'Bulan', 'Jumlah'],
+  'Dashboard Sulawesi': ['PO Year', 'Zona', 'Milestone', 'Bulan', 'Plan', 'Ach', 'Persen', 'Remarks']
+};
+
+function validPivotSheet_(name) {
+  if (!name || !PIVOT_HEADERS[name]) {
+    throw new Error('Sheet pivot tidak dikenal: ' + name +
+      '. Yang diizinkan: ' + Object.keys(PIVOT_HEADERS).join(', '));
+  }
+  return name;
+}
+
+function addPivotRow_(sheetName, data) {
+  var sheet = getSheet_(sheetName);
+  ensureHeadersNamed_(sheetName);
+  var row = buildRowForSheet_(sheet, data, null);
+  sheet.appendRow(row);
+  return sheet.getLastRow();
+}
+
+function ensureHeadersNamed_(sheetName) {
+  var sheet = getSheet_(sheetName);
+  var headers = PIVOT_HEADERS[sheetName] || COLUMNS;
+  var firstRow = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+  var empty = firstRow.every(function (c) { return c === ''; });
+  if (empty) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+  }
 }
 
 /* ============================================================

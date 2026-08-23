@@ -31,18 +31,17 @@
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="site-sul">Site SUL</button>
     <button class="tab-btn" data-tab="site-kal">Site KAL</button>
+    <button class="tab-btn" data-tab="pivot">Pivot Data</button>
   </nav>
 
   <main class="container">
 
     <!-- ==================== TAB DASHBOARD ==================== -->
     <section id="tab-dashboard" class="tab-panel active">
-      <div class="kpi-grid" id="kpiGrid">
-        <!-- KPI cards di-render oleh JS -->
-      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
 
       <div class="card">
-        <h2>MOS per Bulan per ZTE ZONE (2026)</h2>
+        <h2>Assignment per Bulan per Zona</h2>
         <div class="chart-wrap">
           <canvas id="mosChart"></canvas>
         </div>
@@ -57,7 +56,7 @@
 
       <div class="grid-2">
         <div class="card">
-          <h2>Ringkasan ZTE ZONE (Sulawesi)</h2>
+          <h2>Ringkasan Sulawesi</h2>
           <div class="table-scroll">
             <table id="dashSulTable" class="data-table compact"></table>
           </div>
@@ -74,14 +73,12 @@
     <!-- ==================== TAB SITE SUL ==================== -->
     <section id="tab-site-sul" class="tab-panel">
       <div class="toolbar">
-        <label for="zoneFilterSul">Filter ZTE ZONE:</label>
-        <select id="zoneFilterSul" class="select">
-          <option value="">-- Semua Zone --</option>
-        </select>
-        <input type="text" id="searchSul" class="input" placeholder="Cari site / WID...">
-        <span id="countSul" class="badge"></span>
-        <button class="btn btn-primary" onclick="showAddModal('site-sul')">+ Tambah Data</button>
-        <button class="btn btn-secondary" onclick="loadTabData('site-sul')">Refresh</button>
+        <label for="zoneFilter-site-sul">Filter Zona:</label>
+        <select id="zoneFilter-site-sul" class="select"><option value="">-- Semua --</option></select>
+        <input type="text" id="search-site-sul" class="input" placeholder="Cari...">
+        <span id="count-site-sul" class="badge"></span>
+        <button class="btn btn-primary" onclick="showAddModal('site-sul')">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-sul')">Refresh</button>
         <button class="btn btn-secondary" onclick="toggleFilterPanel('site-sul')">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-sul"></div>
@@ -96,14 +93,12 @@
     <!-- ==================== TAB SITE KAL ==================== -->
     <section id="tab-site-kal" class="tab-panel">
       <div class="toolbar">
-        <label for="zoneFilterKal">Filter ZTE ZONE:</label>
-        <select id="zoneFilterKal" class="select">
-          <option value="">-- Semua Zone --</option>
-        </select>
-        <input type="text" id="searchKal" class="input" placeholder="Cari site / WID...">
-        <span id="countKal" class="badge"></span>
-        <button class="btn btn-primary" onclick="showAddModal('site-kal')">+ Tambah Data</button>
-        <button class="btn btn-secondary" onclick="loadTabData('site-kal')">Refresh</button>
+        <label for="zoneFilter-site-kal">Filter Zona:</label>
+        <select id="zoneFilter-site-kal" class="select"><option value="">-- Semua --</option></select>
+        <input type="text" id="search-site-kal" class="input" placeholder="Cari...">
+        <span id="count-site-kal" class="badge"></span>
+        <button class="btn btn-primary" onclick="showAddModal('site-kal')">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-kal')">Refresh</button>
         <button class="btn btn-secondary" onclick="toggleFilterPanel('site-kal')">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-kal"></div>
@@ -115,13 +110,40 @@
       </div>
     </section>
 
+    <!-- ==================== TAB PIVOT DATA ==================== -->
+    <section id="tab-pivot" class="tab-panel">
+      <div class="toolbar">
+        <label for="pivotSelect">Pilih Tabel:</label>
+        <select id="pivotSelect" class="select">
+          <option value="pvt-dash-sul">Pivot SUL (Pvt Dash Sul)</option>
+          <option value="pivot-kal">Pivot KAL (Pivot Kal)</option>
+          <option value="dash-sul">Dashboard Sulawesi</option>
+        </select>
+        <h2 id="pivotTitle" style="margin:0;font-size:1rem;">Pivot SUL</h2>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="search-pvt-dash-sul" class="input" placeholder="Cari...">
+        <span id="count-pvt-dash-sul" class="badge"></span>
+        <button class="btn btn-primary" id="addPivotBtn" onclick="showAddModal('pvt-dash-sul')">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet(state.activePivot)">Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleFilterPanel(state.activePivot)">Filter Kolom</button>
+      </div>
+      <div class="card filter-panel hidden" id="filterPanel-active"></div>
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table id="table-active" class="data-table"></table>
+        </div>
+        <div class="pagination" id="pagination-active"></div>
+      </div>
+    </section>
+
   </main>
 
-  <!-- Modal Tambah/Edit -->
+  <!-- Modal Tambah/Edit/Detail -->
   <div id="modalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <div class="modal-header">
-        <h2 id="modalTitle">Tambah Data</h2>
+        <h2 id="modalTitle">Data</h2>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
       <div class="modal-body">
