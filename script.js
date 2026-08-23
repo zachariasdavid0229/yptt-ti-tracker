@@ -1,7 +1,7 @@
 /* ============ YPTT TI Tracker - Script ============ */
 
 // GANTI dengan URL Web App Google Apps Script Anda
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbyM0f-1AOEvEu2I9fPYpHnMMVNo2c7R4KWLqHe2hy3198TuDxLpcc96PiuoQoYFgHoE/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwD1hJdFMrcPtdB3Y-aKJD09z--jPbOwuvxjAI06crYbf16NH5YqzYT818gwOst1cDZ/exec';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 const ZONE_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
