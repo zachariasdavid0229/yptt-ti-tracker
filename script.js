@@ -604,7 +604,7 @@ function buildForm(data) {
   const refRows = sheetKey === 'site-sul' ? state.siteSul : state.siteKal;
   const cols = refRows.length ? visibleColumns(refRows) : ALL_COLUMNS;
 
-  const html = '<div class="form-grid">' + cols.map(col => {
+  let html = '<div class="form-grid">' + cols.map(col => {
     const val = data[col] === undefined || data[col] === null ? '' : data[col];
     const isWide = WIDE_FIELDS.includes(col);
     const isDate = /Date/i.test(col) && !/Info|Upload|Inbond/i.test(col);
