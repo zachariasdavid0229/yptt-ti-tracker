@@ -80,7 +80,8 @@ const STATIC_OPTIONS = {
 
 const DYNAMIC_COMBO_COLS = ['Site Name Impl', 'Site ID Impl', 'Work Type', 'SOW Details'];
 
-const ZONES_SUL_STATIC = ['Makassar', 'Manado', 'Ternate', 'Pare Pare', 'Kendari', 'Palu'];
+// Dropdown zona untuk Site_SUL: hanya 3 pilihan sesuai kebutuhan
+const ZONES_SUL_STATIC = ['MAKASSAR', 'MANADO', 'TERNATE'];
 
 const SEMI_FREE_OPTIONS = { 'HI Info': ['Done', 'NY'], 'MOS Info': ['Done', 'NY'] };
 
