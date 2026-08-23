@@ -672,7 +672,59 @@ function renderCrudTable(sheetKey) {
 
   tableEl.innerHTML = thead + tbody;
   if (pagEl) renderPagination(pagEl, page, totalPages, sheetKey);
+  applyFreeze(tableEl, cols.length);
 }
+
+/**
+ * Freeze panes ala Excel: header tetap (sticky top) dan dua kolom
+ * pertama tetap terlihat saat scroll ke kanan.
+ * Posisi 'left' dihitung dari lebar aktual kolom sebelumnya.
+ */
+function applyFreeze(tableEl, totalCols) {
+  const ths = tableEl.querySelectorAll('thead th');
+  if (!ths.length) return;
+
+  // Bersihkan freeze lama (mis. setelah re-render)
+  tableEl.querySelectorAll('.frozen-col').forEach(c => {
+    c.classList.remove('frozen-col');
+    c.style.left = '';
+    c.style.zIndex = '';
+  });
+  if (totalCols < 3) return; // tidak perlu freeze untuk tabel sempit
+
+  const w0 = ths[0].offsetWidth;
+  const left2 = w0 + (ths[1] ? ths[1].offsetWidth : 0);
+
+  [[0, 0], [1, w0]].forEach(([idx, left]) => {
+    const th = ths[idx];
+    if (!th) return;
+    th.classList.add('frozen-col');
+    th.style.left = left + 'px';
+    th.style.zIndex = idx === 0 ? 30 : 29;
+  });
+
+  tableEl.querySelectorAll('tbody tr').forEach(tr => {
+    const tds = tr.children;
+    [[0, 0], [1, w0]].forEach(([idx, left]) => {
+      const td = tds[idx];
+      if (!td) return;
+      td.classList.add('frozen-col');
+      td.style.left = left + 'px';
+      td.style.zIndex = idx === 0 ? 10 : 9;
+    });
+  });
+}
+
+// Hitung ulang posisi freeze saat ukuran jendela berubah
+let _resizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(() => {
+    const key = activeSheetKey();
+    const el = document.getElementById(idFor(key, 'table'));
+    if (el && rowsOf(key).length) renderCrudTable(key);
+  }, 250);
+});
 
 function renderPagination(container, page, totalPages, sheetKey) {
   let html = '';
