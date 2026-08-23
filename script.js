@@ -819,6 +819,18 @@ function miniRowHTML(cells, width) {
   }).join('') + '</tr>';
 }
 
+/** Buang baris & kolom yang seluruhnya kosong dari sebuah blok */
+function pruneEmpty(b) {
+  const rows = b.rows.filter(r => r.some(c => String(c === undefined || c === null ? '' : c).trim() !== ''));
+  if (!rows.length) return { offset: b.offset, size: b.size, rows: [] };
+
+  const keep = [];
+  rows[0].forEach((_, i) => {
+    if (rows.some(r => String(r[i] === undefined || r[i] === null ? '' : r[i]).trim() !== '')) keep.push(i);
+  });
+  return { offset: b.offset, size: keep.length, rows: rows.map(r => keep.map(i => r[i])) };
+}
+
 function renderMiniTable(divId, sheetData) {
   const el = document.getElementById(divId);
   if (!el) return;
@@ -827,7 +839,9 @@ function renderMiniTable(divId, sheetData) {
     return;
   }
 
-  const blocks = explodeWideBlocks(splitColumnBlocks(sheetData));
+  let blocks = explodeWideBlocks(splitColumnBlocks(sheetData))
+    .map(pruneEmpty)
+    .filter(b => b.rows.length && b.size > 0);
 
   let html = '';
   blocks.forEach(b => {
@@ -843,8 +857,9 @@ function renderMiniTable(divId, sheetData) {
 
     const headers = b.rows[h].slice();
     const body = b.rows.filter((r, i) => i !== h);
+    const wideClass = b.size >= 9 ? ' wide' : '';
 
-    html += '<div class="mini-block"><table class="data-table compact mini"><thead><tr>' +
+    html += '<div class="mini-block' + wideClass + '"><table class="data-table compact mini"><thead><tr>' +
       headers.map(c => {
         const ic = HEADER_ICONS[String(c).trim()];
         return '<th>' + (ic ? '<span class="header-icon">' + ic + '</span>' : '') +

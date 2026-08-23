@@ -368,14 +368,19 @@ body::before {
 }
 
 /* ---------- Mini blocks (sheet asli di dashboard) ---------- */
+.mini-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
 .mini-stack .mini-block {
   border: 2px solid var(--table-border-outer);
   border-radius: 8px;
   overflow: auto;
-  max-height: 420px;
-  margin-bottom: 16px;
+  max-height: 400px;
 }
-.mini-stack .mini-block:last-child { margin-bottom: 0; }
+.mini-stack .mini-block.wide { grid-column: 1 / -1; max-height: 440px; }
 .mini-stack table.mini { min-width: auto; width: 100%; }
 .mini-stack table.mini th { white-space: normal; }
 
