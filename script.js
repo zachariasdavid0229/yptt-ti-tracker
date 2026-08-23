@@ -813,11 +813,85 @@ function parsePvtDashBlock(sd) {
   return { zones: zones, months: months };
 }
 
-function renderMosChart() {
-  let labels, chartDatasets, title = '';
-  const pvt = parsePvtDashBlock(state.dashboard && state.dashboard.pvt_dash_sul);
+/**
+ * Deteksi format BARU (tabel input reguler): header berisi
+ * Kategori | Bulan | Zona | Jumlah. Agregasi per bulan x zona
+ * untuk kategori 'Assignment'. Return null jika bukan format ini.
+ */
+function tryLongFormatPvt(sd) {
+  try {
+    if (!sd || !sd.headers || !sd.rows.length) return null;
+    const H = sd.headers.map(h => String(h).trim());
+    if (!(H.includes('Kategori') && H.includes('Bulan') &&
+          (H.includes('Zona') || H.includes('Jumlah')))) return null;
 
-  if (pvt) {
+    const iKat = H.indexOf('Kategori'), iBul = H.indexOf('Bulan');
+    const iZon = H.indexOf('Zona'), iJml = H.indexOf('Jumlah');
+
+    // Abaikan baris sisa tempelan pivot lama
+    const JUNK = ['po year', 'count of wid', 'column labels', 'row labels',
+      'grand total', 'values'];
+    const clean = sd.rows.filter(r => {
+      const k = String(r[iKat] === undefined ? '' : r[iKat]).trim().toLowerCase();
+      return k !== '' && !JUNK.includes(k);
+    });
+    if (!clean.length) return null;
+
+    // Pilih kategori 'Assignment' bila ada, jika tidak pakai kategori terbanyak
+    const counts = {};
+    clean.forEach(r => {
+      const k = String(r[iKat]).trim();
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    let kat = counts['Assignment'] ? 'Assignment' :
+      Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+
+    const zones = [], months = [];
+    clean.forEach(r => {
+      const z = String(iZon >= 0 ? (r[iZon] === undefined ? '' : r[iZon]) : '-').trim() || '-';
+      const m = String(r[iBul]).trim();
+      if (z && zones.indexOf(z) === -1) zones.push(z);
+      if (m && months.indexOf(m) === -1) months.push(m);
+    });
+    if (!zones.length || !months.length) return null;
+
+    // Urutkan bulan sesuai urutan MONTHS
+    const mIdx = v => { const i = MONTHS.indexOf(v.toUpperCase()); return i < 0 ? 99 : i; };
+    months.sort((a, b) => mIdx(a) - mIdx(b));
+
+    const agg = {};
+    clean.forEach(r => {
+      if (String(r[iKat]).trim() !== kat) return;
+      const z = String(iZon >= 0 ? (r[iZon] === undefined ? '' : r[iZon]) : '-').trim() || '-';
+      const m = String(r[iBul]).trim();
+      agg[z] = agg[z] || {};
+      agg[z][m] = (agg[z][m] || 0) + (Number(iJml >= 0 ? r[iJml] : 0) || 0);
+    });
+
+    return {
+      labels: months,
+      datasets: zones.map((z, i) => ({
+        label: z,
+        data: months.map(m => (agg[z] && agg[z][m]) || 0),
+        backgroundColor: ZONE_COLORS[i % ZONE_COLORS.length]
+      }))
+    };
+  } catch (e) { return null; }
+}
+
+function renderMosChart() {
+  // Prioritas 1: tabel input reguler format panjang (Pvt Dash Sul baru)
+  // Prioritas 2: blok pivot lama 'Assignment x Zona'
+  // Prioritas 3: fallback layout [MONTH | zona | TOTAL]
+  let labels, chartDatasets;
+
+  const longFmt = tryLongFormatPvt(state.dashboard && state.dashboard.pvt_dash_sul);
+  const pvt = longFmt ? null : parsePvtDashBlock(state.dashboard && state.dashboard.pvt_dash_sul);
+
+  if (longFmt) {
+    labels = longFmt.labels;
+    chartDatasets = longFmt.datasets;
+  } else if (pvt) {
     labels = pvt.months.map(m => m.label);
     chartDatasets = pvt.zones.map((z, i) => ({
       label: z,
@@ -848,24 +922,10 @@ function renderMosChart() {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: {
-          stacked: true,
-          grid: { color: CHART_THEME.grid },
-          ticks: { color: CHART_THEME.ticks }
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          ticks: { precision: 0, color: CHART_THEME.ticks },
-          grid: { color: CHART_THEME.grid }
-        }
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
       },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: { color: CHART_THEME.text, font: { size: 12 } }
-        }
-      }
+      plugins: { legend: { position: 'top' } }
     }
   });
 }
