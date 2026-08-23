@@ -381,6 +381,11 @@ async function loadDashboard(force) {
     renderDashboardStage2();
     renderDashboardStage3();
     hideLoading();
+    if (window.__notifyDataReady) {
+      const fn = window.__notifyDataReady;
+      window.__notifyDataReady = null;
+      fn();
+    }
   }, 0);
 }
 
@@ -696,6 +701,7 @@ async function loadSheet(sheetKey, force = false) {
     state.sheets[sheetKey] = cached.data;
     renderCrudTable(sheetKey);
     buildFilterPanel(sheetKey);
+    if (c.hasZoneFilter) populateZoneFilter(idFor(sheetKey, 'zoneFilter'), sheetKey, cached.data);
     if (!cached.stale) return; // masih fresh - tanpa jaringan
   }
 
@@ -715,6 +721,7 @@ async function loadSheet(sheetKey, force = false) {
     state.sheets[sheetKey] = j.data || [];
     renderCrudTable(sheetKey);
     buildFilterPanel(sheetKey);
+    if (c.hasZoneFilter) populateZoneFilter(idFor(sheetKey, 'zoneFilter'), sheetKey, state.sheets[sheetKey]);
   } catch (err) {
     showToast('Gagal: ' + err.message, 'error');
   } finally {
@@ -1334,6 +1341,37 @@ if (searchActive) searchActive.addEventListener('input', () => {
   renderCrudTable(state.activePivot);
 });
 
+/* ==================== Filter Zona (toolbar) ==================== */
+
+/**
+ * Isi dropdown "Filter Zona" di toolbar.
+ * Site_SUL: hanya MAKASSAR / MANADO / TERNATE (tetap).
+ * Sheet lain: dinamis dari data.
+ */
+function populateZoneFilter(selectId, sheetKey, rows) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const current = sel.value;
+  const zCol = zoneColOf(rows);
+  if (!zCol) return;
+
+  let zones;
+  if (sheetKey === 'site-sul') {
+    zones = ZONES_SUL_STATIC.slice();
+    // pastikan nilai lama di luar 3 zona tetap bisa difilter
+    rows.forEach(r => {
+      const z = String(r[zCol] === undefined || r[zCol] === null ? '' : r[zCol]).trim();
+      if (z && zones.indexOf(z) === -1) zones.push(z);
+    });
+  } else {
+    zones = distinctValues(rows, zCol);
+  }
+
+  sel.innerHTML = '<option value="">-- Semua Zone --</option>' +
+    zones.map(z => '<option value="' + esc(z) + '">' + esc(z) + '</option>').join('');
+  if (zones.includes(current)) sel.value = current;
+}
+
 function toggleFilterPanel(sheetKey) {
   const panel = document.getElementById(idFor(sheetKey, 'filterPanel'));
   if (!panel) return;
@@ -1625,10 +1663,104 @@ function toISODate(v) {
 
 /* ==================== Init ==================== */
 
+/* ---------- Splash Screen (Alien Blue) ---------- */
+const SPLASH_MIN_MS = 2600;   // durasi minimal agar animasi terasa
+const SPLASH_MAX_MS = 12000;  // pengaman: tutup paksa setelah 12 detik
+let splashActive = false;
+let splashDone = false;
+
+function createParticles() {
+  const container = document.getElementById('particlesContainer');
+  if (!container) return;
+  for (let i = 0; i < 130; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 2.5 + 1;
+    p.style.cssText = 'width:' + size + 'px;height:' + size + 'px;' +
+      'left:' + (Math.random() * 100).toFixed(1) + '%;' +
+      'top:' + (Math.random() * 100).toFixed(1) + '%;' +
+      '--duration:' + (Math.random() * 3 + 2).toFixed(1) + 's;' +
+      'animation-delay:' + (Math.random() * 3).toFixed(1) + 's;';
+    container.appendChild(p);
+  }
+}
+
+function splashProgress(pct, statusText) {
+  if (!splashActive) return;
+  const fill = document.getElementById('loaderFill');
+  const perc = document.getElementById('loaderPercent');
+  const stat = document.getElementById('loaderStatus');
+  if (fill) fill.style.width = Math.min(pct, 100) + '%';
+  if (perc) perc.textContent = Math.round(Math.min(pct, 100)) + '%';
+  if (stat && statusText) stat.textContent = statusText;
+}
+
+function closeSplash(onDone) {
+  if (splashDone) return;
+  splashDone = true;
+  splashActive = false;
+  try { sessionStorage.setItem('yptt_splash_seen', '1'); } catch (e) {}
+  const sp = document.getElementById('splashScreen');
+  if (!sp) { onDone(); return; }
+  sp.classList.add('fade-out');
+  setTimeout(() => {
+    sp.style.display = 'none';
+    onDone();
+  }, 1000);
+}
+
+function startSplash(onDone) {
+  // Tampilkan sekali per sesi browser saja
+  let seen = false;
+  try { seen = sessionStorage.getItem('yptt_splash_seen') === '1'; } catch (e) {}
+  if (seen) {
+    const sp = document.getElementById('splashScreen');
+    if (sp) sp.style.display = 'none';
+    onDone();
+    return;
+  }
+
+  splashActive = true;
+  createParticles();
+
+  const statuses = [
+    'Initializing System...',
+    'Connecting to Database...',
+    'Loading Site Data...',
+    'Synchronizing Pivot Tables...',
+    'Preparing Dashboard...',
+    'Almost Ready...',
+    'YPTT TI Tracker Online!'
+  ];
+  let si = 0;
+  const statusTimer = setInterval(() => {
+    splashProgress(Math.min(92, (si + 1) * 14), statuses[Math.min(si, statuses.length - 1)]);
+    si++;
+    if (si >= 6) clearInterval(statusTimer);
+  }, 380);
+
+  const minTimer = setTimeout(() => finish(), SPLASH_MIN_MS);
+  const maxTimer = setTimeout(() => finish(true), SPLASH_MAX_MS);
+
+  function finish(forceStatus) {
+    clearTimeout(minTimer);
+    clearTimeout(maxTimer);
+    clearInterval(statusTimer);
+    splashProgress(100, forceStatus ? 'Almost Ready...' : statuses[statuses.length - 1]);
+    setTimeout(() => closeSplash(onDone), 450);
+  }
+
+  // Dipanggil loadDashboard saat data awal selesai dimuat
+  window.__notifyDataReady = () => {
+    setTimeout(() => finish(false), 300);
+  };
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('pivotSelect');
   if (sel) sel.addEventListener('change', e => switchPivot(e.target.value));
-  switchTab('dashboard');
+
+  startSplash(() => switchTab('dashboard'));
 });
 
 

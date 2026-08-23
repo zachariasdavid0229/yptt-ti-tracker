@@ -7,10 +7,45 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260902">
+  <link rel="stylesheet" href="style.css?v=20260903">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
+  <!-- ===== SPLASH SCREEN ALIEN BLUE ===== -->
+  <div id="splashScreen">
+    <div class="splash-container">
+      <div class="splash-particles" id="particlesContainer"></div>
+
+      <div class="splash-ufo">
+        <div class="ufo-body">
+          <div class="ufo-glass"></div>
+          <div class="ufo-light"></div>
+        </div>
+        <div class="ufo-beam"></div>
+        <div class="ufo-beam ufo-beam-2"></div>
+      </div>
+
+      <div class="splash-title">
+        <h1>
+          <span class="glitch-text" data-text="YPTT">YPTT</span>
+          <span class="splash-sub">TI TRACKER</span>
+        </h1>
+        <p class="splash-tagline">MONITORING SITE TI - SULAWESI &amp; KALIMANTAN</p>
+      </div>
+
+      <div class="splash-loader">
+        <div class="loader-track">
+          <div class="loader-fill" id="loaderFill"></div>
+          <div class="loader-glow"></div>
+        </div>
+        <div class="loader-percent" id="loaderPercent">0%</div>
+        <div class="loader-status" id="loaderStatus">Initializing...</div>
+      </div>
+
+      <div class="splash-version">v2.0.0 | 2026</div>
+    </div>
+  </div>
 
   <!-- Loading Overlay -->
   <div id="loadingOverlay" class="loading-overlay hidden">
@@ -202,6 +237,6 @@
     YPTT TI Tracker &copy; 2026 &mdash; Data source: Google Spreadsheet
   </footer>
 
-  <script src="script.js?v=20260902"></script>
+  <script src="script.js?v=20260903"></script>
 </body>
 </html>

@@ -68,6 +68,186 @@ body::before {
 
 .hidden { display: none !important; }
 
+/* ============================================================
+   SPLASH SCREEN - ALIEN BLUE
+   ============================================================ */
+#splashScreen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #0a1628 0%, #050d1a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+.splash-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 34px;
+}
+.splash-particles { position: absolute; inset: 0; pointer-events: none; }
+.particle {
+  position: absolute;
+  background: #00d4ff;
+  border-radius: 50%;
+  animation: twinkle var(--duration, 3s) ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  0% { opacity: .15; transform: scale(.8); }
+  100% { opacity: 1; transform: scale(1.3); }
+}
+
+.splash-ufo { position: relative; margin-bottom: 6px; animation: floatUfo 3s ease-in-out infinite; }
+@keyframes floatUfo { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+.ufo-body {
+  position: relative;
+  width: 120px; height: 40px;
+  background: linear-gradient(180deg, #1a3a6b, #0a1628);
+  border-radius: 50% 50% 50% 50% / 100% 100% 30% 30%;
+  border: 2px solid rgba(0,212,255,.3);
+  box-shadow: 0 0 40px rgba(0,212,255,.12), inset 0 -20px 40px rgba(0,212,255,.05);
+}
+.ufo-glass {
+  position: absolute;
+  top: -25px; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 35px;
+  background: radial-gradient(ellipse at center, rgba(0,212,255,.2), rgba(0,212,255,.05));
+  border-radius: 50% 50% 50% 50% / 100% 100% 0 0;
+  border: 1px solid rgba(0,212,255,.2);
+}
+.ufo-light {
+  position: absolute;
+  bottom: -8px; left: 50%; transform: translateX(-50%);
+  width: 20px; height: 8px;
+  background: #00d4ff; border-radius: 50%;
+  box-shadow: 0 0 30px #00d4ff, 0 0 60px rgba(0,212,255,.3);
+  animation: pulseLight 1s ease-in-out infinite alternate;
+}
+@keyframes pulseLight {
+  0% { opacity:.5; transform:translateX(-50%) scale(.8); }
+  100% { opacity:1; transform:translateX(-50%) scale(1.2); }
+}
+.ufo-beam {
+  position: absolute;
+  bottom: -80px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 60px;
+  background: linear-gradient(to bottom, rgba(0,212,255,.55), transparent);
+  border-radius: 50%;
+  animation: beamSway 2s ease-in-out infinite;
+}
+.ufo-beam-2 { left: calc(50% - 20px); animation-delay: .5s; width: 2px; height: 40px; }
+@keyframes beamSway {
+  0%,100% { transform: translateX(-50%) rotate(0); }
+  50% { transform: translateX(-50%) rotate(5deg); }
+}
+
+.splash-title { text-align: center; }
+.splash-title h1 {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  margin: 0;
+}
+.glitch-text {
+  position: relative;
+  background: linear-gradient(90deg, #00d4ff, #0088ff, #00d4ff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerText 3s linear infinite;
+}
+@keyframes shimmerText { 0%{background-position:0% center} 100%{background-position:200% center} }
+.glitch-text::before, .glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+}
+.glitch-text::before { color:#00d4ff; animation: glitch1 2s infinite; clip-path: inset(20% 0 60% 0); }
+.glitch-text::after  { color:#0088ff; animation: glitch2 2.5s infinite; clip-path: inset(60% 0 20% 0); }
+@keyframes glitch1 { 0%,100%{opacity:0;transform:none} 10%{opacity:1;transform:translate(-2px,-2px)} 20%,90%{opacity:0;transform:none} }
+@keyframes glitch2 { 0%,100%{opacity:0;transform:none} 15%{opacity:1;transform:translate(2px,2px)} 25%,90%{opacity:0;transform:none} }
+
+.splash-sub {
+  display: block;
+  font-size: 17px;
+  font-weight: 300;
+  color: #8899aa;
+  letter-spacing: 7px;
+  margin-top: 4px;
+}
+.splash-tagline {
+  color: #5a7a9a;
+  font-size: .78rem;
+  letter-spacing: 2px;
+  margin-top: 10px;
+  font-weight: 300;
+  animation: fadeInOut 3s ease-in-out infinite;
+}
+@keyframes fadeInOut { 0%,100%{opacity:.55} 50%{opacity:1} }
+
+.splash-loader { width: 320px; text-align: center; }
+.loader-track {
+  position: relative;
+  width: 100%; height: 4px;
+  background: rgba(0,212,255,.1);
+  border-radius: 4px;
+}
+.loader-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #0088ff, #00d4ff);
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0,212,255,.35);
+  transition: width .35s ease;
+}
+.loader-percent {
+  color: #00d4ff;
+  font-size: .85rem;
+  font-weight: 600;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.loader-status {
+  color: #5a7a9a;
+  font-size: .72rem;
+  margin-top: 4px;
+  letter-spacing: 1px;
+  min-height: 1em;
+  animation: blinkText 1.5s step-end infinite;
+}
+@keyframes blinkText { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+.splash-version {
+  position: absolute;
+  bottom: 28px;
+  color: #2a3a5a;
+  font-size: .7rem;
+  letter-spacing: 2px;
+}
+
+#splashScreen.fade-out {
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+#splashScreen.fade-out .splash-container {
+  transform: scale(.92);
+  transition: transform 1s ease;
+}
+
+@media (max-width: 600px) {
+  .splash-title h1 { font-size: 30px; }
+  .splash-sub { font-size: 13px; letter-spacing: 4px; }
+  .splash-loader { width: 230px; }
+  .ufo-body { width: 80px; height: 28px; }
+  .ufo-glass { width: 42px; height: 24px; top: -18px; }
+}
+
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--color-dark-blue); }
