@@ -420,49 +420,130 @@ function renderMosChart() {
   });
 }
 
-function renderMiniTable(tableId, sheetData) {
-  const el = document.getElementById(tableId);
+/**
+ * Deteksi blok konten berdampingan secara horizontal pada sheet asli.
+ * Kolom-kolom yang terpisah oleh celah kosong dianggap blok berbeda,
+ * lalu ditumpuk vertikal agar tidak melebar.
+ */
+function splitColumnBlocks(sd) {
+  const rows = sd.rows || [];
+  if (!rows.length) return [];
+  let width = Math.max(sd.headers.length, 1);
+  rows.forEach(r => { if (r.length > width) width = r.length; });
+
+  // Tandai kolom yang terpakai
+  const used = new Array(width).fill(false);
+  rows.forEach(r => {
+    for (let c = 0; c < width && c < r.length; c++) {
+      if (String(r[c] === undefined || r[c] === null ? '' : r[c]).trim() !== '') used[c] = true;
+    }
+  });
+
+  // Kelompokkan kolom terpakai yang berurutan menjadi rentang blok
+  const ranges = [];
+  let c = 0;
+  while (c < width) {
+    if (used[c]) {
+      const start = c;
+      while (c < width && used[c]) c++;
+      ranges.push([start, c - start]);
+    } else c++;
+  }
+
+  return ranges.map(([off, len]) => ({
+    offset: off,
+    size: len,
+    rows: rows.map(r => {
+      const out = [];
+      for (let i = 0; i < len; i++) out.push(r[off + i] === undefined ? '' : r[off + i]);
+      return out;
+    })
+  }));
+}
+
+/** Pecah blok yang lebih lebar dari maxCols; kolom label (pertama) diulang */
+function explodeWideBlocks(blocks, maxCols = 11) {
+  const out = [];
+  blocks.forEach(b => {
+    if (b.size <= maxCols || b.size < 4) { out.push(b); return; }
+    for (let s = 1; s < b.size; s += maxCols - 1) {
+      const seg = [0];
+      for (let c = s; c < Math.min(s + (maxCols - 1), b.size); c++) seg.push(c);
+      out.push({
+        offset: b.offset + s,
+        size: seg.length,
+        rows: b.rows.map(r => seg.map(i => r[i]))
+      });
+    }
+  });
+  return out;
+}
+
+function miniRowHTML(cells, width) {
+  // Baris judul seksi: hanya satu sel terisi
+  const filled = cells.filter(c => String(c).trim() !== '');
+  if (filled.length === 1 && width > 2) {
+    const idx = cells.findIndex(c => String(c).trim() !== '');
+    let pad = '';
+    for (let i = 0; i < idx; i++) pad += '<td></td>';
+    return '<tr class="group-row">' + pad +
+      '<td colspan="' + (width - idx) + '">' + esc(cells[idx]) + '</td></tr>';
+  }
+  return '<tr>' + cells.map(c => {
+    let cls = isNum(c) ? 'num' : '';
+    const m = String(c).trim().match(/^(\d+(?:\.\d+)?)\s?%$/);
+    if (m) {
+      cls += (cls ? ' ' : '') +
+        (parseFloat(m[1]) >= 90 ? 'pct-high' :
+         parseFloat(m[1]) >= 70 ? 'pct-mid' : 'pct-low');
+    }
+    return '<td class="' + cls + '">' + esc(c) + '</td>';
+  }).join('') + '</tr>';
+}
+
+function renderMiniTable(divId, sheetData) {
+  const el = document.getElementById(divId);
+  if (!el) return;
   if (!sheetData || !sheetData.rows || !sheetData.rows.length) {
-    el.innerHTML = '<tbody><tr><td class="empty-state">Belum ada data</td></tr></tbody>';
+    el.innerHTML = '<div class="empty-state">Belum ada data</div>';
     return;
   }
-  let width = sheetData.headers.length;
-  sheetData.rows.forEach(r => { if (r.length > width) width = r.length; });
-  const headers = sheetData.headers.slice();
-  while (headers.length < width) headers.push('');
 
-  const thead = '<thead><tr>' +
-    headers.map(h => '<th>' + esc(h) + '</th>').join('') +
-    '</tr></thead>';
+  const blocks = explodeWideBlocks(splitColumnBlocks(sheetData));
 
-  const tbody = '<tbody>' + sheetData.rows.map(row => {
-    const cells = row.slice();
-    while (cells.length < width) cells.push('');
-
-    // Baris judul seksi: hanya satu sel berisi (layout laporan asli,
-    // mis. 'TI SULAWESI', 'MAKASSAR - 2026')
-    const filled = cells.filter(c => String(c).trim() !== '');
-    if (filled.length === 1 && width > 2) {
-      const idx = cells.findIndex(c => String(c).trim() !== '');
-      let grow = '';
-      for (let i = 0; i < idx; i++) grow += '<td></td>';
-      return '<tr class="group-row">' + grow +
-        '<td colspan="' + (width - idx) + '">' + esc(cells[idx]) + '</td></tr>';
-    }
-
-    return '<tr>' + cells.map(c => {
-      let cls = isNum(c) ? 'num' : '';
-      const s = String(c).trim();
-      const m = s.match(/^(\d+(?:\.\d+)?)\s?%$/);
-      if (m) {
-        cls += (cls ? ' ' : '') +
-          (parseFloat(m[1]) >= 90 ? 'pct-high' :
-           parseFloat(m[1]) >= 70 ? 'pct-mid' : 'pct-low');
+  let html = '';
+  blocks.forEach(b => {
+    // Baris header = baris pertama yang memiliki >= 2 sel terisi
+    let h = -1;
+    b.rows.forEach((r, i) => {
+      if (h < 0) {
+        const f = r.filter(c => String(c).trim() !== '').length;
+        if (f >= 2) h = i;
       }
-      return '<td class="' + cls + '">' + esc(c) + '</td>';
-    }).join('') + '</tr>';
-  }).join('') + '</tbody>';
-  el.innerHTML = thead + tbody;
+    });
+    if (h < 0) h = 0;
+
+    const headers = b.rows[h].slice();
+    const body = b.rows.filter((r, i) => i !== h);
+
+    html += '<div class="mini-block"><table class="data-table compact mini"><thead><tr>' +
+      headers.map(c => {
+        const ic = HEADER_ICONS[String(c).trim()];
+        return '<th>' + (ic ? '<span class="header-icon">' + ic + '</span>' : '') +
+          esc(c) + '</th>';
+      }).join('') +
+      '</tr></thead><tbody>' +
+      body.map(r => miniRowHTML(r.slice(), b.size)).join('') +
+      '</tbody></table></div>';
+  });
+
+  el.innerHTML = html;
+
+  // Terapkan freeze panes pada tiap blok
+  el.querySelectorAll('table.mini').forEach(t => {
+    const n = t.querySelector('thead tr').children.length;
+    if (n >= 3) applyFreeze(t, n);
+  });
 }
 
 /* ==================== Smart Dropdown Helpers ==================== */

@@ -207,6 +207,18 @@ body::before {
 
 .chart-wrap { position: relative; height: 380px; }
 
+/* ---------- Mini blocks (sheet asli di dashboard) ---------- */
+.mini-stack .mini-block {
+  border: 2px solid var(--table-border-outer);
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 420px;
+  margin-bottom: 16px;
+}
+.mini-stack .mini-block:last-child { margin-bottom: 0; }
+.mini-stack table.mini { min-width: auto; width: 100%; }
+.mini-stack table.mini th { white-space: normal; }
+
 /* ---------- Toolbar / Form Controls ---------- */
 .toolbar {
   display: flex;
