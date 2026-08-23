@@ -262,7 +262,25 @@ select.select option { background: var(--color-dark-blue); color: var(--color-wh
 .btn-sm { padding: 5px 10px; font-size: .76rem; border-radius: 7px; }
 
 /* ---------- Tables ---------- */
-.table-card { padding: 0; overflow: hidden; border-radius: var(--radius); }
+:root {
+  --table-header-bg-start: #0a1628;
+  --table-header-bg-end: #1a3a6b;
+  --table-header-border: var(--color-cyan);
+  --table-border-outer: var(--color-teal);
+  --table-border-inner: var(--color-dark-gray);
+  --table-border-row: #1a2a4a;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 2px solid var(--table-border-outer);
+}
+.card > .table-scroll,
+.table-card .table-scroll {
+  border-radius: 0;
+}
 
 .table-scroll {
   overflow: auto;
@@ -285,25 +303,45 @@ select.select option { background: var(--color-dark-blue); color: var(--color-wh
 .data-table.dense { font-size: .76rem; min-width: auto; }
 
 .data-table th, .data-table td {
-  border-bottom: 1px solid var(--color-dark-gray);
+  border-bottom: 1px solid var(--table-border-row);
+  border-right: 1px solid var(--table-border-inner);
   padding: 9px 12px;
   text-align: left;
   white-space: nowrap;
   vertical-align: top;
   color: var(--color-white);
 }
+.data-table td:last-child,
+.data-table th:last-child { border-right: none; }
 .data-table th {
-  background: var(--color-royal-blue);
-  font-weight: 600;
+  background: linear-gradient(135deg, var(--table-header-bg-start), var(--table-header-bg-end));
+  font-weight: 700;
   font-size: .66rem;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--color-white);
+  text-align: center;
   position: sticky;
   top: 0;
   z-index: 2;
-  border-bottom: 2px solid var(--color-teal);
+  border-bottom: 3px solid var(--table-header-border);
+  transition: background .2s;
 }
+.data-table th.sortable { cursor: pointer; user-select: none; }
+.data-table th.sortable:hover {
+  background: linear-gradient(135deg, #0d1f3c, #234a85);
+}
+.header-icon {
+  margin-right: 5px;
+  font-size: .8rem;
+}
+.sort-indicator {
+  color: var(--color-gray);
+  font-size: .58rem;
+  margin-left: 4px;
+  display: inline-block;
+}
+.sort-indicator.active { color: var(--color-cyan); font-size: .7rem; }
 .data-table tbody tr:nth-child(even) { background: rgba(13, 31, 60, .5); }
 .data-table tbody tr:hover { background: rgba(45, 107, 184, .15); }
 .data-table tbody tr.clickable { cursor: pointer; }
@@ -319,6 +357,22 @@ select.select option { background: var(--color-dark-blue); color: var(--color-wh
 td.pct-high { color: var(--color-success); font-weight: 600; }
 td.pct-mid  { color: var(--color-warning); font-weight: 600; }
 td.pct-low  { color: var(--color-error); font-weight: 600; }
+
+/* ---------- Status Badge ---------- */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-badge.progress      { background: rgba(255,171,0,.15);  color: #ffab00; border: 1px solid #ffab00; }
+.status-badge.passed        { background: rgba(0,200,83,.15);   color: #00c853; border: 1px solid #00c853; }
+.status-badge.ny            { background: rgba(41,121,255,.15); color: #2979ff; border: 1px solid #2979ff; }
+.status-badge.work-not-start{ background: rgba(255,23,68,.15);  color: #ff1744; border: 1px solid #ff1744; }
+.status-badge.done          { background: rgba(0,200,83,.15);   color: #00c853; border: 1px solid #00c853; }
+.status-badge.no-need       { background: rgba(136,153,170,.15);color: #8899aa; border: 1px solid #8899aa; }
 
 /* Baris judul seksi pada tabel dashboard */
 tr.group-row td {

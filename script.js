@@ -110,6 +110,40 @@ const WIDE_FIELDS = ['Daily REMARK', 'Remark', 'GAP Analysis', 'Blocking Issues'
   'Add Cost Description', 'Connected Info', 'MOS Info', 'HI Info',
   'Blocking SM & Ineom', 'Blocking BARA', 'Remark INBOUND', 'Remarks'];
 
+/* ==================== Header Icon & Status Badge ==================== */
+
+const HEADER_ICONS = {
+  'No': '🔢', 'WID': '📋', 'Site ID Impl': '🆔', 'Site ID': '🆔',
+  'Site Name Impl': '📍', 'Site Name': '📍', 'Band': '📶',
+  'ZTE ZONE': '🌍', 'Zona': '🌍', 'Branch': '🌍',
+  'SM Status': '📊', 'SM ATP': '🔄', 'ATP Passed': '✅',
+  'HI Progress': '⏱️', 'HI Done': '✔️', 'Connected Date': '🔗',
+  'FI Ineom': '🧾', 'MOS': '🛰️', 'Kategori': '📊', 'Bulan': '📅',
+  'Jumlah': '🔢', 'Plan': '🎯', 'Ach': '✅', 'Persen': '⏱️',
+  'Milestone': '🏁', 'PO Year': '🗓️', 'Remarks': '📝', 'Total Site': '#'
+};
+
+const BADGE_RULES = [
+  [/work not start/i, 'work-not-start'],
+  [/ny sm|\bny\b/i, 'ny'],
+  [/progress/i, 'progress'],
+  [/passed/i, 'passed'],
+  [/no need/i, 'no-need'],
+  [/\bdone\b/i, 'done']
+];
+
+/** Bungkus nilai status ke badge berwarna; return null jika bukan status */
+function badgeHTML(v) {
+  const s = String(v === undefined || v === null ? '' : v).trim();
+  if (!s || s.length > 60) return null;
+  for (const r of BADGE_RULES) {
+    if (r[0].test(s)) {
+      return '<span class="status-badge ' + r[1] + '">' + esc(s) + '</span>';
+    }
+  }
+  return null;
+}
+
 /* ==================== State ==================== */
 
 let state = {
@@ -120,7 +154,8 @@ let state = {
   currentTab: 'dashboard',
   activePivot: 'pvt-dash-sul',
   page: {},
-  filters: {}
+  filters: {},
+  sort: {}
 };
 
 Object.keys(SHEET_CONFIG).forEach(k => {
@@ -586,20 +621,53 @@ function renderCrudTable(sheetKey) {
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   if (state.page[sheetKey] > totalPages) state.page[sheetKey] = totalPages;
+
+  // Sortir aktif (klik header)
+  const sortCfg = state.sort[sheetKey];
+  if (sortCfg) {
+    const col = sortCfg.col;
+    rows.sort((a, b) => {
+      const x = a[col], y = b[col];
+      const ex = x === undefined || x === null || String(x).trim() === '';
+      const ey = y === undefined || y === null || String(y).trim() === '';
+      if (ex && !ey) return 1;
+      if (ey && !ex) return -1;
+      if (ex && ey) return 0;
+      const nx = parseFloat(x), ny = parseFloat(y);
+      const c = (!isNaN(nx) && !isNaN(ny)) ? nx - ny : String(x).localeCompare(String(y));
+      return c * sortCfg.dir;
+    });
+  }
+
   const page = state.page[sheetKey];
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const cols = visibleColumns(sheetKey, rows);
 
   const thead = '<thead><tr>' +
-    cols.map(c => '<th title="' + esc(c) + '">' + esc(c) + '</th>').join('') +
+    cols.map(c => {
+      const icon = HEADER_ICONS[c];
+      let ind = '', cls = 'sortable';
+      if (sortCfg && sortCfg.col === c) {
+        ind = sortCfg.dir === 1 ? '▲' : '▼';
+        cls += ' active';
+      }
+      return '<th class="' + cls + '" title="Klik untuk sortir" ' +
+        'onclick="sortBy(\'' + sheetKey + '\', \'' + esc(c).replace(/'/g, "\\'") + '\')">' +
+        (icon ? '<span class="header-icon">' + icon + '</span>' : '') +
+        esc(c) +
+        '<span class="sort-indicator' + (ind ? ' active' : '') + '">' + ind + '</span></th>';
+    }).join('') +
     '</tr></thead>';
 
   const tbody = '<tbody>' + pageRows.map(r =>
     '<tr class="clickable" title="Klik untuk detail" onclick="showDetailModal(\'' + sheetKey + '\', ' + r.rowIndex + ')">' +
-      cols.map(c =>
-        '<td class="' + (isNum(r[c]) ? 'num' : 'wrap') + '" title="' + esc(r[c]) + '">' +
-        esc(truncate(r[c])) + '</td>').join('') +
+      cols.map(c => {
+        const badge = badgeHTML(r[c]);
+        if (badge) return '<td>' + badge + '</td>';
+        return '<td class="' + (isNum(r[c]) ? 'num' : 'wrap') + '" title="' + esc(r[c]) + '">' +
+          esc(truncate(r[c])) + '</td>';
+      }).join('') +
     '</tr>').join('') + '</tbody>';
 
   tableEl.innerHTML = thead + tbody;
@@ -636,6 +704,14 @@ function renderPagination(container, page, totalPages, sheetKey) {
 
 function changePage(sheetKey, page) {
   state.page[sheetKey] = page;
+  renderCrudTable(sheetKey);
+}
+
+function sortBy(sheetKey, col) {
+  const cur = state.sort[sheetKey];
+  if (!cur || cur.col !== col) state.sort[sheetKey] = { col: col, dir: 1 };
+  else if (cur.dir === 1) state.sort[sheetKey] = { col: col, dir: -1 };
+  else delete state.sort[sheetKey];
   renderCrudTable(sheetKey);
 }
 
