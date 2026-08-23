@@ -187,6 +187,8 @@ body {
   z-index: 2;
 }
 .data-table tbody tr:hover { background: #f0f6ff; }
+.data-table tbody tr.clickable { cursor: pointer; }
+.data-table tbody tr.clickable:hover { background: #e7f0fd; }
 .data-table td.wrap { white-space: normal; min-width: 160px; max-width: 320px; }
 .data-table td.num { text-align: right; }
 
@@ -312,6 +314,61 @@ body {
   padding: 40px;
   text-align: center;
   color: var(--text-muted);
+}
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px;
+  flex-wrap: wrap;
+}
+.pagination button {
+  min-width: 36px;
+  height: 34px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: 7px;
+  font-size: .84rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.pagination button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.pagination button.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.page-info { font-size: .82rem; color: var(--text-muted); margin: 0 8px; }
+
+/* ---------- Detail View ---------- */
+.detail-list { display: flex; flex-direction: column; }
+.detail-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eef1f4;
+  font-size: .86rem;
+}
+.detail-item:last-child { border-bottom: none; }
+.detail-label {
+  flex: 0 0 200px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.detail-value { flex: 1; word-break: break-word; }
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 /* ---------- Responsive ---------- */

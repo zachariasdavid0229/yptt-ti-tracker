@@ -39,8 +39,11 @@ let state = {
   dashboard: null,
   kpi: null,
   mosChart: null,
-  currentTab: 'dashboard'
+  currentTab: 'dashboard',
+  page: { 'site-sul': 1, 'site-kal': 1 }
 };
+
+const PAGE_SIZE = 10;
 
 /* ==================== API Helper ==================== */
 
@@ -229,43 +232,89 @@ function getFilteredRows(sheetKey) {
 
 function renderCrudTable(sheetKey) {
   const tableEl = document.getElementById('table-' + sheetKey);
+  const pagEl = document.getElementById('pagination-' + sheetKey);
   const countEl = document.getElementById(sheetKey === 'site-sul' ? 'countSul' : 'countKal');
   const rows = getFilteredRows(sheetKey);
 
   countEl.textContent = rows.length + ' data';
   tableEl.innerHTML = '';
+  pagEl.innerHTML = '';
 
   if (!rows.length) {
     tableEl.innerHTML = '<tbody><tr><td class="empty-state">Tidak ada data yang cocok</td></tr></tbody>';
     return;
   }
 
+  // Clamp halaman (mis. setelah filter berubah / data terhapus)
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  if (state.page[sheetKey] > totalPages) state.page[sheetKey] = totalPages;
+  const page = state.page[sheetKey];
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const cols = visibleColumns(rows);
 
-  const thead = '<thead><tr><th>#</th>' +
+  const thead = '<thead><tr>' +
     cols.map(c => '<th title="' + esc(c) + '">' + esc(c) + '</th>').join('') +
-    '<th>Aksi</th></tr></thead>';
+    '</tr></thead>';
 
-  const tbody = '<tbody>' + rows.map((r, i) =>
-    '<tr>' +
-      '<td>' + (i + 1) + '</td>' +
+  const tbody = '<tbody>' + pageRows.map((r, i) =>
+    '<tr class="clickable" title="Klik untuk detail" onclick="showDetailModal(\'' + sheetKey + '\', ' + r.rowIndex + ')">' +
       cols.map(c =>
         '<td class="' + (isNum(r[c]) ? 'num' : 'wrap') + '" title="' + esc(r[c]) + '">' +
         esc(truncate(r[c])) + '</td>').join('') +
-      '<td><div class="row-actions">' +
-        '<button class="btn btn-primary btn-sm" onclick="showEditModal(\'' + sheetKey + '\', ' + r.rowIndex + ')">Edit</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="confirmDelete(\'' + sheetKey + '\', ' + r.rowIndex + ')">Hapus</button>' +
-      '</div></td>' +
     '</tr>').join('') + '</tbody>';
 
   tableEl.innerHTML = thead + tbody;
+  renderPagination(pagEl, page, totalPages, sheetKey);
 }
 
-// Event filter & search
+function renderPagination(container, page, totalPages, sheetKey) {
+  let html = '';
+
+  html += '<button' + (page <= 1 ? ' disabled' : '') +
+    ' onclick="changePage(\'' + sheetKey + '\', ' + (page - 1) + ')">&laquo; Prev</button>';
+
+  const maxBtns = 7;
+  let start = Math.max(1, page - Math.floor(maxBtns / 2));
+  let end = Math.min(totalPages, start + maxBtns - 1);
+  start = Math.max(1, end - maxBtns + 1);
+
+  if (start > 1) {
+    html += '<button onclick="changePage(\'' + sheetKey + '\', 1)">1</button>';
+    if (start > 2) html += '<span class="page-info">...</span>';
+  }
+  for (let p = start; p <= end; p++) {
+    html += '<button class="' + (p === page ? 'active' : '') +
+      '" onclick="changePage(\'' + sheetKey + '\', ' + p + ')">' + p + '</button>';
+  }
+  if (end < totalPages) {
+    if (end < totalPages - 1) html += '<span class="page-info">...</span>';
+    html += '<button onclick="changePage(\'' + sheetKey + '\', ' + totalPages + ')">' + totalPages + '</button>';
+  }
+
+  html += '<button' + (page >= totalPages ? ' disabled' : '') +
+    ' onclick="changePage(\'' + sheetKey + '\', ' + (page + 1) + ')">Next &raquo;</button>';
+
+  html += '<span class="page-info">Hal. ' + page + ' / ' + totalPages + '</span>';
+  container.innerHTML = html;
+}
+
+function changePage(sheetKey, page) {
+  state.page[sheetKey] = page;
+  renderCrudTable(sheetKey);
+}
+
+// Event filter & search — reset ke halaman 1 saat filter berubah
 ['zoneFilterSul', 'searchSul'].forEach(id =>
-  document.getElementById(id).addEventListener('input', () => renderCrudTable('site-sul')));
+  document.getElementById(id).addEventListener('input', () => {
+    state.page['site-sul'] = 1;
+    renderCrudTable('site-sul');
+  }));
 ['zoneFilterKal', 'searchKal'].forEach(id =>
-  document.getElementById(id).addEventListener('input', () => renderCrudTable('site-kal')));
+  document.getElementById(id).addEventListener('input', () => {
+    state.page['site-kal'] = 1;
+    renderCrudTable('site-kal');
+  }));
 
 function populateZoneFilter(selectId, rows) {
   const sel = document.getElementById(selectId);
@@ -279,6 +328,63 @@ function populateZoneFilter(selectId, rows) {
   sel.innerHTML = '<option value="">-- Semua Zone --</option>' +
     zones.map(z => '<option value="' + esc(z) + '">' + esc(z) + '</option>').join('');
   if (zones.includes(current)) sel.value = current;
+}
+
+/* ==================== Pop-up Detail ==================== */
+
+let detailContext = null; // { sheetKey, rowIndex }
+
+function showDetailModal(sheetKey, rowIndex) {
+  const source = sheetKey === 'site-sul' ? state.siteSul : state.siteKal;
+  let row = null;
+  for (const r of source) {
+    if (r.rowIndex === rowIndex) { row = r; break; }
+  }
+  if (!row) { showToast('Baris tidak ditemukan', 'error'); return; }
+
+  detailContext = { sheetKey: sheetKey, rowIndex: rowIndex };
+  document.getElementById('modalTitle').textContent =
+    'Detail: ' + (row['Site Name Impl'] || row['Site ID Impl'] || row['WID'] || 'Data');
+
+  // Tampilkan semua kolom yang memiliki isi
+  const entries = Object.keys(row)
+    .filter(col => col !== 'rowIndex')
+    .filter(col => String(row[col] === undefined || row[col] === null ? '' : row[col]).trim() !== '');
+
+  const html =
+    '<div class="detail-list">' +
+    (entries.length
+      ? entries.map(col =>
+          '<div class="detail-item">' +
+            '<div class="detail-label">' + esc(col) + '</div>' +
+            '<div class="detail-value">' + esc(row[col]) + '</div>' +
+          '</div>').join('')
+      : '<div class="empty-state">Tidak ada data</div>') +
+    '</div>' +
+    '<div class="detail-actions">' +
+      '<button type="button" class="btn btn-danger" onclick="deleteFromDetail()">Hapus</button>' +
+      '<button type="button" class="btn btn-primary" onclick="editFromDetail()">Edit Data</button>' +
+    '</div>';
+
+  document.getElementById('dataForm').innerHTML = html;
+  openModal();
+}
+
+function editFromDetail() {
+  if (!detailContext) return;
+  const ctx = detailContext;
+  closeModal();
+  setTimeout(() => showEditModal(ctx.sheetKey, ctx.rowIndex), 100);
+}
+
+async function deleteFromDetail() {
+  if (!detailContext) return;
+  const ctx = detailContext;
+  if (!confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.')) return;
+  await apiCall('delete-' + ctx.sheetKey, { rowIndex: ctx.rowIndex });
+  closeModal();
+  showToast('Data berhasil dihapus');
+  loadTabData(ctx.sheetKey);
 }
 
 /* ==================== Modal Form (Tambah/Edit) ==================== */
