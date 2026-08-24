@@ -1,6 +1,6 @@
 /* ============ YPTT TI Tracker - Script ============ */
 
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxSLw2ZTOHK9nuV3p3tyMvqI3pAAZQzuMCQqxEmB1jz_QbmLzslj7L2eEgjB50dMKX5/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzgCDq377A9ECmck-RN1j93sBJolp9OiPRLdL0Z0TUZbXrJiOW5tEPjNtn7GTxoYr1t/exec';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ZONE_COLORS = ['#2d6bb8', '#00b4d8', '#4a90d9', '#0077b6', '#8899aa'];
