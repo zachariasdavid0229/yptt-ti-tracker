@@ -2103,14 +2103,14 @@ async function createFormulas() {
     });
     const json = await res.json();
     
-    if (json.status === 'ok') {
+    if (json.success === true) {
       status.textContent = 'Berhasil!';
       status.className = 'badge badge-success';
       alert('Formula berhasil dibuat!\n\nSheet yang sudah di-update:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nSilakan cek Google Spreadsheet.');
     } else {
       status.textContent = 'Gagal';
       status.className = 'badge badge-error';
-      alert('Gagal membuat formula: ' + (json.message || 'Unknown error'));
+      alert('Gagal membuat formula: ' + (json.error || json.message || 'Unknown error'));
     }
   } catch (err) {
     status.textContent = 'Error';
