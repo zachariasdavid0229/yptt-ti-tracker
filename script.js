@@ -317,15 +317,17 @@ function loadDashboard(force) {
 /* ==================== Dashboard: lazy loading + cache ==================== */
 
 const DASH_DEFS = [
-  { name: 'kpi', qs: 'action=kpi', label: 'KPI' },
-  { name: 'dashboard', qs: 'action=dashboard', label: 'Pivot & grafik' },
+  { name: 'dashboard', qs: 'action=dashboard', label: 'Dashboard & KPI' },
   { name: 'sheet-site-sul', qs: 'action=site-sul', label: 'Site SUL' },
   { name: 'sheet-site-kal', qs: 'action=site-kal', label: 'Site KAL' }
 ];
 
 function applyDashPiece(name, data) {
-  if (name === 'kpi') state.kpi = data;
-  else if (name === 'dashboard') state.dashboard = data;
+  if (name === 'dashboard') {
+    state.dashboard = data;
+    // KPI disertakan dalam response dashboard (R5: batch API)
+    if (data && data.kpi) state.kpi = data.kpi;
+  }
   else if (name === 'sheet-site-sul') state.sheets['site-sul'] = data || [];
   else if (name === 'sheet-site-kal') state.sheets['site-kal'] = data || [];
 }
@@ -398,8 +400,10 @@ async function doLoadDashboard(force) {
         cacheSet(d.name, j.data);
         values[d.name] = j.data;
         applyDashPiece(d.name, j.data);
-        if (d.name === 'kpi') renderDashboardStage1(); // KPI tampil lebih dulu
-        if (d.name === 'dashboard') renderDashboardStage2(); // grafik saat pivot siap
+        if (d.name === 'dashboard') {
+          renderDashboardStage1(); // KPI + header stats
+          renderDashboardStage2(); // charts
+        }
       } catch (err) {
         showToast('Gagal memuat ' + d.label + ': ' + err.message, 'error');
       } finally {
@@ -433,10 +437,14 @@ function pctOf(part, total) {
   return Math.round(part / total * 100) + '%';
 }
 
+/**
+ * Cek apakah nilai menandakan "selesai".
+ * SYNC: Logika harus identik dengan isDone_() di Code.gs.
+ */
 function isDoneVal(v) {
   const s = String(v === undefined || v === null ? '' : v).trim().toUpperCase();
-  if (s === '' || ['-', 'N', 'NO', 'FALSE', 'NULL'].includes(s)) return false;
-  if (s.includes('PENDING') || s.includes('BELUM')) return false;
+  if (s === '' || s === '-' || s === 'N' || s === 'NO' || s === 'FALSE' || s === 'NULL') return false;
+  if (s.indexOf('PENDING') !== -1 || s.indexOf('BELUM') !== -1) return false;
   return true;
 }
 
@@ -1257,8 +1265,12 @@ function resolveCol(rows, candidates) {
   return null;
 }
 
+/**
+ * Deteksi kolom wilayah/zona secara adaptif.
+ * SYNC: Kandidat harus identik dengan zoneColName_() di Code.gs backend.
+ */
 function zoneColOf(rows) {
-  return resolveCol(rows, ['ZTE ZONE', 'Zona', 'Branch', 'Cluster', 'Region', 'Area']);
+  return resolveCol(rows, ['ZTE ZONE', 'Zona', 'Branch', 'Cluster', 'Region', 'Area']) || 'ZTE ZONE';
 }
 
 function distinctValues(rows, col) {

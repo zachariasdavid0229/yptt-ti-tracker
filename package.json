@@ -1,0 +1,17 @@
+{
+  "name": "yptt-ti-tracker",
+  "version": "2.0.0",
+  "description": "Monitoring Site TI - Sulawesi & Kalimantan 2026",
+  "main": "script.js",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node test-mobile2.js",
+    "lint": "echo \"No linter configured\""
+  },
+  "keywords": ["monitoring", "dashboard", "yptt"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/clasp": "^3.4.0"
+  }
+}

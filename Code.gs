@@ -473,11 +473,16 @@ function getDashboard() {
   var dashSul = readSheetRawMatrix_(SHEETS.DASH_SUL);
   var pvtSul = readSheetRawMatrix_(SHEETS.PVT_SUL);
   var pivotKal = readSheetRawMatrix_(SHEETS.PIVOT_KAL);
+
+  // Sertakan KPI dalam response dashboard untuk mengurangi jumlah request
+  var kpi = getKPI();
+
   return {
     dashboard_2026: dash2026,
     dashboard_sulawesi: dashSul,
     pvt_dash_sul: pvtSul,
-    pivot_kal: pivotKal
+    pivot_kal: pivotKal,
+    kpi: kpi
   };
 }
 
@@ -527,7 +532,7 @@ function getKPI() {
   return kpi;
 }
 
-/** Anggap selesai jika nilainya bukan kosong/'-'/'N'/false/pending */
+/** Cek apakah nilai menandakan "selesai". SYNC: Logika harus identik dengan isDoneVal() di script.js frontend. */
 function isDone_(val) {
   var s = toStr_(val).toUpperCase();
   if (s === '' || s === '-' || s === 'N' || s === 'NO' || s === 'FALSE' ||
@@ -589,12 +594,12 @@ function syncAllData() {
 
 /**
  * Deteksi kolom wilayah/zona secara adaptif.
- * Site_SUL memakai 'ZTE ZONE'; Site_KAL (struktur baru) memakai 'Branch'.
+ * SYNC: Kandidat harus identik dengan zoneColOf() di script.js frontend.
  */
 function zoneColName_(rows) {
   if (!rows || !rows.length) return 'ZTE ZONE';
   var keys = Object.keys(rows[0]);
-  var candidates = ['ZTE ZONE', 'Branch', 'Cluster', 'Region', 'Area'];
+  var candidates = ['ZTE ZONE', 'Zona', 'Branch', 'Cluster', 'Region', 'Area'];
   for (var i = 0; i < candidates.length; i++) {
     if (keys.indexOf(candidates[i]) !== -1) return candidates[i];
   }
