@@ -227,19 +227,19 @@
     <!-- ==================== TAB SITE UPGRADE PLN ==================== -->
     <section id="tab-site-pln" class="tab-panel" role="tabpanel" aria-labelledby="tab-site-pln">
       <div class="toolbar">
-        <button class="btn btn-primary" onclick="showAddModal('site-pln')">+ Tambah Data</button>
-        <button class="btn" onclick="refreshData('site-pln')">🔄 Refresh</button>
         <input type="text" id="search-site-pln" class="input" placeholder="Cari WID, Site Name, PLN ID...">
+        <span id="count-site-pln" class="badge"></span>
+        <button class="btn btn-primary" onclick="showAddModal('site-pln')" aria-label="Tambah data Site PLN">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-pln', true)" aria-label="Refresh data Site PLN">Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleFilterPanel('site-pln')" aria-label="Toggle filter kolom Site PLN">Filter Kolom</button>
       </div>
-      <div class="table-wrap" id="tableWrap-site-pln">
-        <div id="tableContainer-site-pln" class="table-container">
-          <table class="data-table" id="dataTable-site-pln">
-            <thead id="tableHead-site-pln"></thead>
-            <tbody id="tableBody-site-pln"></tbody>
-          </table>
+      <div class="card filter-panel hidden" id="filterPanel-site-pln"></div>
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table id="table-site-pln" class="data-table"></table>
         </div>
+        <div class="pagination" id="pagination-site-pln"></div>
       </div>
-      <div class="pagination" id="pagination-site-pln"></div>
     </section>
 
   </main>

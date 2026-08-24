@@ -1616,7 +1616,7 @@ function sortBy(sheetKey, col) {
 }
 
 // Event filter & search — reset ke halaman 1 saat berubah
-['site-sul', 'site-kal'].forEach(key => {
+['site-sul', 'site-kal', 'site-pln'].forEach(key => {
   ['zoneFilter-', 'search-'].forEach(prefix => {
     const el = document.getElementById(prefix + key);
     if (!el) return;
