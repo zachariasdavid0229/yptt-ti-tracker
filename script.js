@@ -340,6 +340,16 @@ function renderDashboardStage3() {
   renderHeaderStats();
 }
 
+// Toggle dashboard content (collapse/expand)
+function toggleDashboardContent(btn) {
+  const card = btn.closest('.card');
+  card.classList.toggle('collapsed');
+  const content = card.querySelector('> *:last-child');
+  if (content) {
+    content.style.display = card.classList.contains('collapsed') ? 'none' : 'block';
+  }
+}
+
 async function doLoadDashboard(force) {
   const values = {};
   let pending = 0;
