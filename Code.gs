@@ -19,6 +19,7 @@ var SPREADSHEET_KEY = '1Iegz1iOI97vs_Qnt3RIcGM6Euy5VGsKl_H5bLLAIuYw';
 var SHEETS = {
   SITE_SUL: 'Site_SUL',
   SITE_KAL: 'Site_KAL',
+  SITE_PLN: 'Site_Upgrade PLN',
   DASH_2026: 'Dashboard_2026',
   DASH_SUL: 'Dashboard Sulawesi',
   PVT_SUL: 'Pvt Dash Sul',
@@ -45,7 +46,15 @@ var COLUMNS = [
   'PIC Mover', 'Remark INBOUND', 'Date Upload', 'Blocking BARA',
   'eATP Submit Date', 'eATP Approve TSEL Date', 'eATP Status',
   'PO Status', 'PO Number', 'PO Release Date', 'BAUT Approved by Tsel',
-  'BAUT Status', 'BAST SAP Status', 'YPMS Status', 'inv status'
+  'BAUT Status', 'BAST SAP Status', 'YPMS Status',   'inv status'
+];
+
+var COLUMNS_PLN = [
+  'WID', 'SOW Planning', 'Site ID Impl', 'Site Name Impl', 'Work Type',
+  'Actual registred (for WCC)', 'PLN ID', 'Registration code',
+  'Registration date', 'Survey date', 'Survey result',
+  'remarks Upgrade', 'remarks', 'Upgrade Time', 'ATP',
+  'Total PO Amt (IDR) No Tax', 'Site PLN Productivity Status'
 ];
 
 /* ============================================================
@@ -113,6 +122,10 @@ function handleRequest_(method, e) {
       case 'api/site-kal':
         result = ok_(getSiteKAL(), 'Data Site KAL berhasil diambil');
         break;
+      case 'site-pln':
+      case 'api/site-pln':
+        result = ok_(getSitePLN(), 'Data Site Upgrade PLN berhasil diambil');
+        break;
       case 'dashboard':
       case 'api/dashboard':
         result = ok_(getDashboard(), 'Data dashboard berhasil diambil');
@@ -147,6 +160,9 @@ function handleRequest_(method, e) {
       case 'add-site-kal':
         result = ok_({ rowIndex: addSiteKAL(body.data || {}) }, 'Data berhasil ditambahkan');
         break;
+      case 'add-site-pln':
+        result = ok_({ rowIndex: addSitePLN(body.data || {}) }, 'Data berhasil ditambahkan');
+        break;
 
       // ---------- UPDATE (via POST override / PUT) ----------
       case 'update-site-sul':
@@ -157,6 +173,10 @@ function handleRequest_(method, e) {
         updateSiteKAL(body.rowIndex, body.data || {});
         result = ok_({}, 'Data berhasil diperbarui');
         break;
+      case 'update-site-pln':
+        updateSitePLN(body.rowIndex, body.data || {});
+        result = ok_({}, 'Data berhasil diperbarui');
+        break;
 
       // ---------- DELETE (via POST override / DELETE) ----------
       case 'delete-site-sul':
@@ -165,6 +185,10 @@ function handleRequest_(method, e) {
         break;
       case 'delete-site-kal':
         deleteSiteKAL(body.rowIndex);
+        result = ok_({}, 'Data berhasil dihapus');
+        break;
+      case 'delete-site-pln':
+        deleteSitePLN(body.rowIndex);
         result = ok_({}, 'Data berhasil dihapus');
         break;
 
@@ -403,6 +427,40 @@ function updateSiteKAL(rowIndex, data) {
 function deleteSiteKAL(rowIndex) {
   deleteRowAt_(SHEETS.SITE_KAL, rowIndex);
   return true;
+}
+
+/* ============================================================
+ * CRUD - Site_Upgrade PLN
+ * ============================================================ */
+
+function getSitePLN() {
+  return readSheetObjects_(SHEETS.SITE_PLN);
+}
+
+function addSitePLN(data) {
+  var sheet = getSheet_(SHEETS.SITE_PLN);
+  ensureHeadersPLN_(sheet);
+  var row = buildRowForSheet_(sheet, data, null);
+  sheet.appendRow(row);
+  return sheet.getLastRow();
+}
+
+function updateSitePLN(rowIndex, data) {
+  writeRowAt_(SHEETS.SITE_PLN, rowIndex, data);
+  return true;
+}
+
+function deleteSitePLN(rowIndex) {
+  deleteRowAt_(SHEETS.SITE_PLN, rowIndex);
+  return true;
+}
+
+function ensureHeadersPLN_(sheet) {
+  var firstRow = sheet.getRange(1, 1, 1, COLUMNS_PLN.length).getValues()[0];
+  var empty = firstRow.every(function (c) { return c === ''; });
+  if (empty) {
+    sheet.getRange(1, 1, 1, COLUMNS_PLN.length).setValues([COLUMNS_PLN]).setFontWeight('bold');
+  }
 }
 
 function ensureHeaders_(sheet) {

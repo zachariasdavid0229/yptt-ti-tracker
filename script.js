@@ -28,6 +28,13 @@ const SHEET_CONFIG = {
     columns: null,
     hasZoneFilter: true
   },
+  'site-pln': {
+    label: 'Site Upgrade PLN',
+    api: 'site-pln',
+    actions: { add: 'add-site-pln', update: 'update-site-pln', del: 'delete-site-pln' },
+    columns: null,
+    hasZoneFilter: false
+  },
   'pvt-dash-sul': {
     label: 'Pivot SUL',
     api: 'pivot',

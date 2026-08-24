@@ -66,6 +66,7 @@
     <button class="tab-btn" data-tab="site-sul" role="tab" aria-selected="false" aria-controls="tab-site-sul">Site SUL</button>
     <button class="tab-btn" data-tab="site-kal" role="tab" aria-selected="false" aria-controls="tab-site-kal">Site KAL</button>
     <button class="tab-btn" data-tab="pivot" role="tab" aria-selected="false" aria-controls="tab-pivot">Pivot Data</button>
+    <button class="tab-btn" data-tab="site-pln" role="tab" aria-selected="false" aria-controls="tab-site-pln">Site PLN</button>
   </nav>
 
   <main class="container" id="main-content">
@@ -221,6 +222,24 @@
         </div>
         <div class="pagination" id="pagination-active"></div>
       </div>
+    </section>
+
+    <!-- ==================== TAB SITE UPGRADE PLN ==================== -->
+    <section id="tab-site-pln" class="tab-panel" role="tabpanel" aria-labelledby="tab-site-pln">
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="showAddModal('site-pln')">+ Tambah Data</button>
+        <button class="btn" onclick="refreshData('site-pln')">🔄 Refresh</button>
+        <input type="text" id="search-site-pln" class="input" placeholder="Cari WID, Site Name, PLN ID...">
+      </div>
+      <div class="table-wrap" id="tableWrap-site-pln">
+        <div id="tableContainer-site-pln" class="table-container">
+          <table class="data-table" id="dataTable-site-pln">
+            <thead id="tableHead-site-pln"></thead>
+            <tbody id="tableBody-site-pln"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="pagination" id="pagination-site-pln"></div>
     </section>
 
   </main>
