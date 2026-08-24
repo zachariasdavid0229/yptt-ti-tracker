@@ -1,0 +1,121 @@
+{
+  "workbook": "YPTT_TI Tracker_Tsel Project_ 19 Agustus 2026.xlsx",
+  "sheet_count": 22,
+  "edges": [
+    {
+      "from_sheet": "Dashboard SUL",
+      "to_sheet": "Pivot Sul",
+      "formula_count": 33
+    },
+    {
+      "from_sheet": "Dashboard Sulawesi",
+      "to_sheet": "Pvt Dash Sul",
+      "formula_count": 133
+    },
+    {
+      "from_sheet": "Dashboard_2026",
+      "to_sheet": "Pivot Kal",
+      "formula_count": 39
+    },
+    {
+      "from_sheet": "Dashboard_2026",
+      "to_sheet": "Pivot Sul",
+      "formula_count": 47
+    }
+  ],
+  "external_links": [
+    {
+      "file": "externalLink1.xml",
+      "target": "/Users/USER/Downloads/eOA%20Tracker%2020260120.xlsx",
+      "sheets": [
+        "Target Mar - 25",
+        "sitelist",
+        "Sheet3"
+      ]
+    },
+    {
+      "file": "externalLink2.xml",
+      "target": "/Users/Admin/Downloads/Tracker%20online%20YPTT%20TSEL%20Kalimantan%20(6).xlsx",
+      "sheets": [
+        "PIVOT",
+        "TRACKER YPTT",
+        "Sheet18",
+        "DATA PO"
+      ]
+    },
+    {
+      "file": "externalLink3.xml",
+      "target": "/Users/danoej/Downloads/Tracker%20YPTT_Sitelist%20Acceleration%20CP1%202026_Target%20Desember%202025_Template.xlsx",
+      "sheets": [
+        "Site List TI",
+        "TI_until Nov25",
+        "Pivot TI_U"
+      ]
+    },
+    {
+      "file": "externalLink4.xml",
+      "target": "/Users/USER/Downloads/Tracker%20YPTT_Sitelist%20Acceleration%20CP1%202026_Target%20Desember%202025_Template.xlsx",
+      "sheets": [
+        "Site List TI",
+        "TI_until Nov25",
+        "Pivot TI_U"
+      ]
+    }
+  ],
+  "defined_names": [
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "14",
+      "hidden": "1",
+      "refers_to": "Inbound!$A$1:$S$12"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "9",
+      "hidden": "1",
+      "refers_to": "Sheet2!$B$1:$I$1"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "3",
+      "hidden": "1",
+      "refers_to": "Site_KAL!$A$1:$CP$183"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "4",
+      "hidden": "1",
+      "refers_to": "Site_SUL!$A$1:$WWR$1742"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "6",
+      "hidden": "1",
+      "refers_to": "'Site_Upgrade PLN'!$A$1:$Q$14"
+    },
+    {
+      "name": "_xlnm._FilterDatabase",
+      "localSheetId": "17",
+      "hidden": "1",
+      "refers_to": "'Team List'!$A$19:$X$19"
+    },
+    {
+      "name": "Slicer_Years__Connected_Date1",
+      "localSheetId": "",
+      "hidden": "",
+      "refers_to": "#N/A"
+    },
+    {
+      "name": "Slicer_Years__HI_Done",
+      "localSheetId": "",
+      "hidden": "",
+      "refers_to": "#N/A"
+    },
+    {
+      "name": "Slicer_Years__MOS",
+      "localSheetId": "",
+      "hidden": "",
+      "refers_to": "#N/A"
+    }
+  ]
+}

@@ -1,0 +1,1083 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Coloring_Title" xml:space="preserve">
+    <value>ExcelAnalyzer release </value>
+  </data>
+  <data name="Coloring_PGSheets" xml:space="preserve">
+    <value>Select Sheets</value>
+  </data>
+  <data name="Coloring_Cbgo" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Coloring_cbExit" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Coloring_CB_ShtDeSelectAll" xml:space="preserve">
+    <value>Deselect all</value>
+  </data>
+  <data name="Coloring_CB_ShtSelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Coloring_lblSettings_A1" xml:space="preserve">
+    <value>Color:</value>
+  </data>
+  <data name="Coloring_lblSettings_A2" xml:space="preserve">
+    <value>Copy sheet</value>
+  </data>
+  <data name="Coloring_lblSettings_A3" xml:space="preserve">
+    <value>Original sheet</value>
+  </data>
+  <data name="Coloring_lblSettings_B1" xml:space="preserve">
+    <value>Place report in:</value>
+  </data>
+  <data name="Coloring_lblSettings_B2" xml:space="preserve">
+    <value>Active workbook</value>
+  </data>
+  <data name="Coloring_lblSettings_B3" xml:space="preserve">
+    <value>Open workbook</value>
+  </data>
+  <data name="Coloring_lblSettings_B4" xml:space="preserve">
+    <value>No report</value>
+  </data>
+  <data name="Coloring_PG0" xml:space="preserve">
+    <value>Formulas</value>
+  </data>
+  <data name="Coloring_Standard" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="General_Constants" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="General_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_lblPG0_1" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="Coloring_lblPG0_2" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_lblPG0_3" xml:space="preserve">
+    <value>Unique formula colors:</value>
+  </data>
+  <data name="Coloring_lblPG0_4" xml:space="preserve">
+    <value>Once on sheet</value>
+  </data>
+  <data name="Coloring_lblPG4_3" xml:space="preserve">
+    <value>Formula with no function</value>
+  </data>
+  <data name="Coloring_lblPG4_4" xml:space="preserve">
+    <value>Function colors:</value>
+  </data>
+  <data name="Coloring_lblSettings_C1" xml:space="preserve">
+    <value>Background:</value>
+  </data>
+  <data name="Coloring_lblSettings_C2" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Coloring_lblSettings_C3" xml:space="preserve">
+    <value>No fill</value>
+  </data>
+  <data name="Coloring_lblSettings_C4" xml:space="preserve">
+    <value>Inside used range</value>
+  </data>
+  <data name="Coloring_lblSettings_C5" xml:space="preserve">
+    <value>Outside used range</value>
+  </data>
+  <data name="Coloring_lblPG2_1" xml:space="preserve">
+    <value>Formula</value>
+  </data>
+  <data name="Coloring_lblPG2_10" xml:space="preserve">
+    <value>Blank:</value>
+  </data>
+  <data name="Coloring_lblPG2_11" xml:space="preserve">
+    <value>Blank input cell</value>
+  </data>
+  <data name="Coloring_lblPG2_2" xml:space="preserve">
+    <value>Unused by other formula</value>
+  </data>
+  <data name="Coloring_lblPG2_3" xml:space="preserve">
+    <value>Used by other formula</value>
+  </data>
+  <data name="Coloring_lblPG2_4" xml:space="preserve">
+    <value>Constant:</value>
+  </data>
+  <data name="Coloring_lblPG2_5" xml:space="preserve">
+    <value>Unused constant</value>
+  </data>
+  <data name="Coloring_lblPG2_6" xml:space="preserve">
+    <value>Input constant</value>
+  </data>
+  <data name="Coloring_lblPG2_7" xml:space="preserve">
+    <value>Text:</value>
+  </data>
+  <data name="Coloring_lblPG2_8" xml:space="preserve">
+    <value>Unused text cell</value>
+  </data>
+  <data name="Coloring_lblPG2_9" xml:space="preserve">
+    <value>Input text cell</value>
+  </data>
+  <data name="Coloring_lblPG3_1_10" xml:space="preserve">
+    <value>#NUM!</value>
+  </data>
+  <data name="Coloring_lblPG3_1_11" xml:space="preserve">
+    <value>#N/A</value>
+  </data>
+  <data name="Coloring_lblPG3_1_12" xml:space="preserve">
+    <value>Excel errors suppression:</value>
+  </data>
+  <data name="Coloring_lblPG3_1_13" xml:space="preserve">
+    <value>Suppress Excel errors</value>
+  </data>
+  <data name="Coloring_lblPG3_1_14" xml:space="preserve">
+    <value>IF(ISERROR, IF(ISERR, IF(ISNA, IFERROR, IFNA</value>
+  </data>
+  <data name="General_Formulas" xml:space="preserve">
+    <value>Formulas &amp;&amp; Errors</value>
+  </data>
+  <data name="Coloring_lblPG3_1_1" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="Coloring_lblPG3_1_2" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_lblPG3_1_3" xml:space="preserve">
+    <value>Formulas</value>
+  </data>
+  <data name="Coloring_lblPG3_1_4" xml:space="preserve">
+    <value>Excel errors:</value>
+  </data>
+  <data name="Coloring_lblPG3_1_5" xml:space="preserve">
+    <value>#NULL!</value>
+  </data>
+  <data name="Coloring_lblPG3_1_6" xml:space="preserve">
+    <value>#DIV/0!</value>
+  </data>
+  <data name="Coloring_lblPG3_1_7" xml:space="preserve">
+    <value>#VALUE!</value>
+  </data>
+  <data name="Coloring_lblPG3_1_8" xml:space="preserve">
+    <value>#REF!</value>
+  </data>
+  <data name="Coloring_lblPG3_1_9" xml:space="preserve">
+    <value>#NAME?</value>
+  </data>
+  <data name="Coloring_lblPG3_2_1" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="Coloring_lblPG3_2_2" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_lblPG3_2_3" xml:space="preserve">
+    <value>Formulas</value>
+  </data>
+  <data name="Coloring_lblPG3_2_4" xml:space="preserve">
+    <value>Other potential errors:</value>
+  </data>
+  <data name="Coloring_lblPG3_2_5" xml:space="preserve">
+    <value>Numbers formatted as text</value>
+  </data>
+  <data name="Coloring_lblPG3_2_6" xml:space="preserve">
+    <value>Circular references</value>
+  </data>
+  <data name="Coloring_lblPG3_2_7" xml:space="preserve">
+    <value>Duplicate formulas (2 or more identical</value>
+  </data>
+  <data name="Coloring_lblPG3_2_8" xml:space="preserve">
+    <value>formulas on one sheet)</value>
+  </data>
+  <data name="Coloring_lblPG3_3_10" xml:space="preserve">
+    <value>Formula which refers to other workbook</value>
+  </data>
+  <data name="Coloring_lblPG3_3_1" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="Coloring_lblPG3_3_2" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_lblPG3_3_3" xml:space="preserve">
+    <value>Formulas</value>
+  </data>
+  <data name="Coloring_lblPG3_3_4" xml:space="preserve">
+    <value>Numbers in formulas (not best practice formulas):</value>
+  </data>
+  <data name="Coloring_lblPG3_3_5" xml:space="preserve">
+    <value>Number in formula 1     =555+689</value>
+  </data>
+  <data name="Coloring_lblPG3_3_6" xml:space="preserve">
+    <value>Number in formula 2     =sum(a1:a10)+285</value>
+  </data>
+  <data name="Coloring_lblPG3_3_7" xml:space="preserve">
+    <value>Number in formula 3     =if(a1&gt;10;"High;"Low")</value>
+  </data>
+  <data name="Coloring_lblPG3_3_8" xml:space="preserve">
+    <value>Number in formula 4     =subtotal(1;a1:a10)</value>
+  </data>
+  <data name="Coloring_lblPG3_3_9" xml:space="preserve">
+    <value>No potential errors (for information only):</value>
+  </data>
+  <data name="Coloring_txt_Newworkbook" xml:space="preserve">
+    <value> (new workbook) </value>
+  </data>
+  <data name="Coloring_PG2" xml:space="preserve">
+    <value>Input cells</value>
+  </data>
+  <data name="Coloring_PG3" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="Coloring_PG3_1" xml:space="preserve">
+    <value>type 1</value>
+  </data>
+  <data name="Coloring_PG3_2" xml:space="preserve">
+    <value>type 2</value>
+  </data>
+  <data name="Coloring_PG3_3" xml:space="preserve">
+    <value>type 3</value>
+  </data>
+  <data name="Coloring_PG4" xml:space="preserve">
+    <value>Functions</value>
+  </data>
+  <data name="Coloring_lblPG4_1" xml:space="preserve">
+    <value>Constants</value>
+  </data>
+  <data name="Coloring_lblPG4_2" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Coloring_tbPG3_1_1" xml:space="preserve">
+    <value>Formulas with    Excel errors:</value>
+  </data>
+  <data name="Coloring_tbPG3_1_2" xml:space="preserve">
+    <value>Formulas that
+   refer to errors:</value>
+  </data>
+  <data name="Coloring_tbPG3_1_3" xml:space="preserve">
+    <value>Text errors:</value>
+  </data>
+  <data name="Coloring_msg_1" xml:space="preserve">
+    <value>Please, select at least one sheet.</value>
+  </data>
+  <data name="Coloring_txt_Chart" xml:space="preserve">
+    <value>Chart</value>
+  </data>
+  <data name="Coloring_txt_Dialogsheet" xml:space="preserve">
+    <value>Dialogsheet</value>
+  </data>
+  <data name="Coloring_txt_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Coloring_txt_Formula" xml:space="preserve">
+    <value>Formula </value>
+  </data>
+  <data name="Coloring_txt_Hidden" xml:space="preserve">
+    <value>Hidden</value>
+  </data>
+  <data name="Coloring_txt_Macrosheet" xml:space="preserve">
+    <value>Macrosheet</value>
+  </data>
+  <data name="Coloring_txt_Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Coloring_txt_Protected" xml:space="preserve">
+    <value>Protected</value>
+  </data>
+  <data name="Coloring_txt_Selectsheets" xml:space="preserve">
+    <value>Select sheets</value>
+  </data>
+  <data name="Coloring_txt_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Coloring_txt_Veryhidden" xml:space="preserve">
+    <value>Very Hidden</value>
+  </data>
+  <data name="Camera_cbCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Camera_cbContinue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Camera_grid_col0" xml:space="preserve">
+    <value>Sheet</value>
+  </data>
+  <data name="Camera_grid_col1" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Camera_TbMessage" xml:space="preserve">
+    <value>This workbook contains camera object(s). This slows down the performance of the ExcelAnalyzer!
+
+The objects are on sheets:</value>
+  </data>
+  <data name="ColoringIndex_cbLastcell" xml:space="preserve">
+    <value>Last Cell: </value>
+  </data>
+  <data name="ColoringIndex_cbLastcellLink" xml:space="preserve">
+    <value>Link to Cell</value>
+  </data>
+  <data name="ColoringIndex_cbLinkReport" xml:space="preserve">
+    <value>Goto formulas report</value>
+  </data>
+  <data name="ColoringIndex_cbShowAll" xml:space="preserve">
+    <value>Reset Filters</value>
+  </data>
+  <data name="ColoringIndex_cbShowFormulas" xml:space="preserve">
+    <value>  Show Formulas</value>
+  </data>
+  <data name="ColoringIndex_cbShowFormulasNormal" xml:space="preserve">
+    <value>Normal View</value>
+  </data>
+  <data name="ColoringIndex_cbShowFormulasReset" xml:space="preserve">
+    <value>Reset Colors</value>
+  </data>
+  <data name="ColoringIndex_DP_1" xml:space="preserve">
+    <value>All formulas      </value>
+  </data>
+  <data name="ColoringIndex_DP_2" xml:space="preserve">
+    <value>All constants     </value>
+  </data>
+  <data name="ColoringIndex_DP_3" xml:space="preserve">
+    <value>All text cells    </value>
+  </data>
+  <data name="ColoringIndex_DP_4" xml:space="preserve">
+    <value>All input cells   </value>
+  </data>
+  <data name="ColoringIndex_DP_5" xml:space="preserve">
+    <value>All unused cells  </value>
+  </data>
+  <data name="ColoringIndex_DP_6" xml:space="preserve">
+    <value>All constant and blank input cells  </value>
+  </data>
+  <data name="ColoringIndex_DP_Title" xml:space="preserve">
+    <value>Dependancy Simple</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_1" xml:space="preserve">
+    <value>Unused by another formula</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_2" xml:space="preserve">
+    <value>Used as input by another formula</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_3" xml:space="preserve">
+    <value>Unused constant</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_4" xml:space="preserve">
+    <value>Input constant</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_5" xml:space="preserve">
+    <value>Unused text cell</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_6" xml:space="preserve">
+    <value>Input text cell</value>
+  </data>
+  <data name="ColoringIndex_DP_txt_7" xml:space="preserve">
+    <value>Blank input cell</value>
+  </data>
+  <data name="ColoringIndex_ER2_Title" xml:space="preserve">
+    <value>Error type 2</value>
+  </data>
+  <data name="ColoringIndex_ER2_txt_1" xml:space="preserve">
+    <value>Numbers formatted as text</value>
+  </data>
+  <data name="ColoringIndex_ER2_txt_2" xml:space="preserve">
+    <value>Circular references</value>
+  </data>
+  <data name="ColoringIndex_ER2_txt_3" xml:space="preserve">
+    <value>Duplicate formulas</value>
+  </data>
+  <data name="ColoringIndex_ER3_Title" xml:space="preserve">
+    <value>Error type 3</value>
+  </data>
+  <data name="ColoringIndex_ER3_txt_1" xml:space="preserve">
+    <value>Hardcoded 1     =555+689</value>
+  </data>
+  <data name="ColoringIndex_ER3_txt_2" xml:space="preserve">
+    <value>Hardcoded 2     =sum(a1:a10)+285</value>
+  </data>
+  <data name="ColoringIndex_ER3_txt_3" xml:space="preserve">
+    <value>Hardcoded 3     =if(a1&gt;10;</value>
+  </data>
+  <data name="ColoringIndex_ER3_txt_4" xml:space="preserve">
+    <value>Hardcoded 4     =subtotal(1;a1:a10)</value>
+  </data>
+  <data name="ColoringIndex_ER3_txt_5" xml:space="preserve">
+    <value>Formula which refers to other workbook</value>
+  </data>
+  <data name="ColoringIndex_ER_Title" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="ColoringIndex_ER_txt_1" xml:space="preserve">
+    <value>Suppress Excel errors</value>
+  </data>
+  <data name="ColoringIndex_FS_Title" xml:space="preserve">
+    <value>Functions Simple</value>
+  </data>
+  <data name="ColoringIndex_FS_txt_1" xml:space="preserve">
+    <value>No functions</value>
+  </data>
+  <data name="ColoringIndex_KbLink" xml:space="preserve">
+    <value>Goto cell: </value>
+  </data>
+  <data name="ColoringIndex_kbTraceDep" xml:space="preserve">
+    <value>Tracing Inputs</value>
+  </data>
+  <data name="ColoringIndex_kbTracePrec" xml:space="preserve">
+    <value>Tracing Formulas</value>
+  </data>
+  <data name="ColoringIndex_kbZoom" xml:space="preserve">
+    <value>Narrow Columns</value>
+  </data>
+  <data name="ColoringIndex_kbZoomNormal" xml:space="preserve">
+    <value>Reset Narrow Columns</value>
+  </data>
+  <data name="ColoringIndex_lblFilter1" xml:space="preserve">
+    <value>Filter option 1:</value>
+  </data>
+  <data name="ColoringIndex_lblGoto" xml:space="preserve">
+    <value>No cells apply</value>
+  </data>
+  <data name="ColoringIndex_lblMain" xml:space="preserve">
+    <value>Sheet:</value>
+  </data>
+  <data name="ColoringIndex_lbRadio" xml:space="preserve">
+    <value>Filter option 2:</value>
+  </data>
+  <data name="ColoringIndex_lbWorksheet" xml:space="preserve">
+    <value>Sheet</value>
+  </data>
+  <data name="ColoringIndex_msg_1" xml:space="preserve">
+    <value>You selected </value>
+  </data>
+  <data name="ColoringIndex_msg_10" xml:space="preserve">
+    <value>This command is not possible on protected sheets.</value>
+  </data>
+  <data name="ColoringIndex_msg_1_1" xml:space="preserve">
+    <value> cells.</value>
+  </data>
+  <data name="ColoringIndex_msg_1_2" xml:space="preserve">
+    <value>Please select maximum 250 cells.</value>
+  </data>
+  <data name="ColoringIndex_msg_2" xml:space="preserve">
+    <value>Your selection doesn't contain any inputcells or said differently, the selected cells are not used by any formula.</value>
+  </data>
+  <data name="ColoringIndex_msg_2_1" xml:space="preserve">
+    <value>Tracing Inputs:</value>
+  </data>
+  <data name="ColoringIndex_msg_3" xml:space="preserve">
+    <value>Your selection does not contain formulas or contains formulas like for example '=12+15' which don't use other cells.</value>
+  </data>
+  <data name="ColoringIndex_msg_3_1" xml:space="preserve">
+    <value>Tracing Formulas:</value>
+  </data>
+  <data name="ColoringIndex_msg_4" xml:space="preserve">
+    <value>Original worksheet is hidden, renamed or deleted.</value>
+  </data>
+  <data name="ColoringIndex_msg_5" xml:space="preserve">
+    <value>Report could not be found (or is renamed).</value>
+  </data>
+  <data name="ColoringIndex_msg_6" xml:space="preserve">
+    <value>Back to Cell A1</value>
+  </data>
+  <data name="ColoringIndex_msg_7" xml:space="preserve">
+    <value>Link to </value>
+  </data>
+  <data name="ColoringIndex_msg_8" xml:space="preserve">
+    <value>Select range</value>
+  </data>
+  <data name="ColoringIndex_msg_9" xml:space="preserve">
+    <value>Selector</value>
+  </data>
+  <data name="ColoringIndex_UF_1" xml:space="preserve">
+    <value>#REF! error               </value>
+  </data>
+  <data name="ColoringIndex_UF_2" xml:space="preserve">
+    <value>External links            </value>
+  </data>
+  <data name="ColoringIndex_UF_3" xml:space="preserve">
+    <value>Formula with function     </value>
+  </data>
+  <data name="ColoringIndex_UF_4" xml:space="preserve">
+    <value>Formula with no function      </value>
+  </data>
+  <data name="ColoringIndex_UF_5" xml:space="preserve">
+    <value>Hardcoded formulas        </value>
+  </data>
+  <data name="ColoringIndex_UF_6" xml:space="preserve">
+    <value>Intersheet links          </value>
+  </data>
+  <data name="ColoringIndex_UF_7" xml:space="preserve">
+    <value>Formula with "text"       </value>
+  </data>
+  <data name="ColoringIndex_UF_8" xml:space="preserve">
+    <value>Formula with name         </value>
+  </data>
+  <data name="ColoringIndex_UF_9" xml:space="preserve">
+    <value>Formula with operator          </value>
+  </data>
+  <data name="ColoringIndex_UF_10" xml:space="preserve">
+    <value>Absolute formula          </value>
+  </data>
+  <data name="ColoringIndex_UF_11" xml:space="preserve">
+    <value>Array formula             </value>
+  </data>
+  <data name="ColoringIndex_UF_12" xml:space="preserve">
+    <value>Table formula             </value>
+  </data>
+  <data name="ColoringIndex_UF_13" xml:space="preserve">
+    <value>User defined function     </value>
+  </data>
+  <data name="ColoringIndex_UF_14" xml:space="preserve">
+    <value>Same sheet links          </value>
+  </data>
+  <data name="ColoringIndex_UF_1_1" xml:space="preserve">
+    <value>E</value>
+  </data>
+  <data name="ColoringIndex_UF_1_2" xml:space="preserve">
+    <value>Er, </value>
+  </data>
+  <data name="ColoringIndex_UF_2_1" xml:space="preserve">
+    <value>I</value>
+  </data>
+  <data name="ColoringIndex_UF_2_2" xml:space="preserve">
+    <value>I, </value>
+  </data>
+  <data name="ColoringIndex_UF_3_1" xml:space="preserve">
+    <value>Ex, </value>
+  </data>
+  <data name="ColoringIndex_UF_4_1" xml:space="preserve">
+    <value>N</value>
+  </data>
+  <data name="ColoringIndex_UF_4_2" xml:space="preserve">
+    <value>N, </value>
+  </data>
+  <data name="ColoringIndex_UF_Title" xml:space="preserve">
+    <value>Formulas analysis</value>
+  </data>
+  <data name="ColoringIndex_UF_txt_1" xml:space="preserve">
+    <value>Once on sheet</value>
+  </data>
+  <data name="ColoringIndex_UF_txt_2" xml:space="preserve">
+    <value>Formula  </value>
+  </data>
+  <data name="ColoringWorker_CB_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ColoringWorker_LB0" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="ColoringWorker_LB0_1" xml:space="preserve">
+    <value>Reader Status: </value>
+  </data>
+  <data name="ColoringWorker_LB1" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="ColoringWorker_LB1_1" xml:space="preserve">
+    <value>Coloring Status: </value>
+  </data>
+  <data name="ColoringWorker_LB2" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="ColoringWorker_LB2_1" xml:space="preserve">
+    <value>Reporting Status: </value>
+  </data>
+  <data name="ColoringWorker_lbColoring" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="ColoringWorker_lbColoring_2" xml:space="preserve">
+    <value>Functions</value>
+  </data>
+  <data name="ColoringWorker_lbFilename" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="ColoringWorker_lblTitleAnalyses" xml:space="preserve">
+    <value>Analysis:</value>
+  </data>
+  <data name="ColoringWorker_lblTitleFile" xml:space="preserve">
+    <value>File:</value>
+  </data>
+  <data name="ColoringWorker_lblTitleTime" xml:space="preserve">
+    <value>Elapsed Time:</value>
+  </data>
+  <data name="General_Range" xml:space="preserve">
+    <value>Range</value>
+  </data>
+  <data name="ColoringWorker_LB0a" xml:space="preserve">
+    <value>Initializing</value>
+  </data>
+  <data name="ColoringWorker_LB0a_1" xml:space="preserve">
+    <value>Checking &amp; Removing existing coloring/reporting</value>
+  </data>
+  <data name="ColoringWorker_LB0a_2" xml:space="preserve">
+    <value>Phase 1 Reading file</value>
+  </data>
+  <data name="ColoringWorker_LB0a_3" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="ColoringWorker_LB0a_4" xml:space="preserve">
+    <value>Initializing Coloring</value>
+  </data>
+  <data name="ColoringWorker_LB0b" xml:space="preserve">
+    <value> sec.</value>
+  </data>
+  <data name="ColoringWorker_LB1a_1" xml:space="preserve">
+    <value>Coloring Sheet: </value>
+  </data>
+  <data name="ColoringWorker_LB1a_2" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="ColoringWorker_LB2a_1" xml:space="preserve">
+    <value>Initializing Reporting...</value>
+  </data>
+  <data name="ExcelFunctions_txt_1" xml:space="preserve">
+    <value>Goto </value>
+  </data>
+  <data name="ExcelFunctions_txt_2" xml:space="preserve">
+    <value>Investigation Panel</value>
+  </data>
+  <data name="General_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="General_Hidden" xml:space="preserve">
+    <value>Hidden</value>
+  </data>
+  <data name="General_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="General_Not_Selected" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="General_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="General_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="General_Protected" xml:space="preserve">
+    <value>Protected</value>
+  </data>
+  <data name="General_P_Protected" xml:space="preserve">
+    <value>Password protected</value>
+  </data>
+  <data name="General_Very_Hidden" xml:space="preserve">
+    <value>Very hidden</value>
+  </data>
+  <data name="General_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="MainFunctions_txt_1" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="MainFunctions_txt_2" xml:space="preserve">
+    <value>Excel version: </value>
+  </data>
+  <data name="MainFunctions_txt_3" xml:space="preserve">
+    <value>Workbook: </value>
+  </data>
+  <data name="MainFunctions_txt_4" xml:space="preserve">
+    <value>Sheet: </value>
+  </data>
+  <data name="MainFunctions_txt_5" xml:space="preserve">
+    <value>Are you sure to restore the default color settings?</value>
+  </data>
+  <data name="Reader_txt_1" xml:space="preserve">
+    <value>Phase 2 Processing Sheet </value>
+  </data>
+  <data name="Reader_txt_2" xml:space="preserve">
+    <value>Phase 3 Reading file Ranges and Names</value>
+  </data>
+  <data name="Reader_txt_3" xml:space="preserve">
+    <value>Reading cell Information: Sheet </value>
+  </data>
+  <data name="Reader_txt_4" xml:space="preserve">
+    <value> of </value>
+  </data>
+  <data name="Reader_txt_5" xml:space="preserve">
+    <value>Document not saved.</value>
+  </data>
+  <data name="Reader_txt_6" xml:space="preserve">
+    <value>SaveCopyAs method of Workbook class failed</value>
+  </data>
+  <data name="Reader_txt_7" xml:space="preserve">
+    <value>File contains Errors</value>
+  </data>
+  <data name="Reader_txt_8" xml:space="preserve">
+    <value>Could not find file</value>
+  </data>
+  <data name="Reader_txt_9" xml:space="preserve">
+    <value>File does no longer exists</value>
+  </data>
+  <data name="RptDependency_txt_1" xml:space="preserve">
+    <value>Starting Precendancy Report....</value>
+  </data>
+  <data name="RptDependency_txt_2" xml:space="preserve">
+    <value>Starting Report....</value>
+  </data>
+  <data name="RptDependency_txt_3" xml:space="preserve">
+    <value>Dependancy Report Phase 1...</value>
+  </data>
+  <data name="RptDependency_txt_4" xml:space="preserve">
+    <value>Phase 1...</value>
+  </data>
+  <data name="RptDependency_txt_5" xml:space="preserve">
+    <value>Precedancy Report Formatting....</value>
+  </data>
+  <data name="RptDependency_txt_6" xml:space="preserve">
+    <value>Formatting Report phase 1....</value>
+  </data>
+  <data name="RptDependency_txt_7" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="RptErrors_txt_1" xml:space="preserve">
+    <value>Starting Error Report....</value>
+  </data>
+  <data name="RptErrors_txt_2" xml:space="preserve">
+    <value>Starting Report....</value>
+  </data>
+  <data name="RptErrors_txt_3" xml:space="preserve">
+    <value>Error Report Sheet: </value>
+  </data>
+  <data name="RptFunctions_txt_1" xml:space="preserve">
+    <value>Starting Function Report....</value>
+  </data>
+  <data name="RptFunctions_txt_2" xml:space="preserve">
+    <value>Starting Report....</value>
+  </data>
+  <data name="RptFunctions_txt_3" xml:space="preserve">
+    <value>Function Report Sheet: </value>
+  </data>
+  <data name="RptIF_txt_1" xml:space="preserve">
+    <value>Starting Intersheet Report....</value>
+  </data>
+  <data name="RptIF_txt_2" xml:space="preserve">
+    <value>Intersheet Report Phase 1...</value>
+  </data>
+  <data name="RptIF_txt_3" xml:space="preserve">
+    <value>Intersheet Report Phase 2...</value>
+  </data>
+  <data name="RptIF_txt_4" xml:space="preserve">
+    <value>Intersheet Report Formatting...</value>
+  </data>
+  <data name="RptIF_txt_5" xml:space="preserve">
+    <value>Intersheet Report  phase 3...</value>
+  </data>
+  <data name="RptIF_txt_6" xml:space="preserve">
+    <value>Intersheet Report Finished</value>
+  </data>
+  <data name="RptSummary_txt_1" xml:space="preserve">
+    <value>Overview Initialize</value>
+  </data>
+  <data name="RptSummary_txt_2" xml:space="preserve">
+    <value>Yes, password protected</value>
+  </data>
+  <data name="RptSummary_txt_3" xml:space="preserve">
+    <value>Worksheet</value>
+  </data>
+  <data name="RptSummary_txt_4" xml:space="preserve">
+    <value>Overview 2 Finished</value>
+  </data>
+  <data name="RptSummary_txt_5" xml:space="preserve">
+    <value>Overview 2 Sheet: </value>
+  </data>
+  <data name="RptSummary_txt_6" xml:space="preserve">
+    <value>VeryHidden</value>
+  </data>
+  <data name="RptSummary_txt_7" xml:space="preserve">
+    <value>Yes, no password protected</value>
+  </data>
+  <data name="RptUnique_txt_1" xml:space="preserve">
+    <value>Formulas report Initialize</value>
+  </data>
+  <data name="RptUnique_txt_10" xml:space="preserve">
+    <value> other workbooks:</value>
+  </data>
+  <data name="RptUnique_txt_11" xml:space="preserve">
+    <value> functions used: </value>
+  </data>
+  <data name="RptUnique_txt_12" xml:space="preserve">
+    <value> combinations of functions used:</value>
+  </data>
+  <data name="RptUnique_txt_13" xml:space="preserve">
+    <value> hardcoded numbers used in formulas:</value>
+  </data>
+  <data name="RptUnique_txt_14" xml:space="preserve">
+    <value>Formula references to </value>
+  </data>
+  <data name="RptUnique_txt_15" xml:space="preserve">
+    <value> of the total of </value>
+  </data>
+  <data name="RptUnique_txt_16" xml:space="preserve">
+    <value> worksheets:</value>
+  </data>
+  <data name="RptUnique_txt_17" xml:space="preserve">
+    <value> Text used in formulas:</value>
+  </data>
+  <data name="RptUnique_txt_18" xml:space="preserve">
+    <value> names used in formulas:</value>
+  </data>
+  <data name="RptUnique_txt_19" xml:space="preserve">
+    <value> operators used in formulas:</value>
+  </data>
+  <data name="RptUnique_txt_2" xml:space="preserve">
+    <value>Formulas report Sheet: </value>
+  </data>
+  <data name="RptUnique_txt_20" xml:space="preserve">
+    <value> out of 14 filter options (use blue options)</value>
+  </data>
+  <data name="RptUnique_txt_21" xml:space="preserve">
+    <value>This workbook contains #REF! errors.</value>
+  </data>
+  <data name="RptUnique_txt_22" xml:space="preserve">
+    <value>To find other potential Error use the error analysis option.</value>
+  </data>
+  <data name="RptUnique_txt_23" xml:space="preserve">
+    <value>This workbook contains no #REF! errors.</value>
+  </data>
+  <data name="RptUnique_txt_24" xml:space="preserve">
+    <value>To find other potential Error use the error analysis option.</value>
+  </data>
+  <data name="RptUnique_txt_25" xml:space="preserve">
+    <value>Absolute formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_26" xml:space="preserve">
+    <value>No absolute formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_27" xml:space="preserve">
+    <value>Array formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_28" xml:space="preserve">
+    <value>No array formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_29" xml:space="preserve">
+    <value>Table formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_3" xml:space="preserve">
+    <value>This sheet contains no formulas</value>
+  </data>
+  <data name="RptUnique_txt_30" xml:space="preserve">
+    <value>No table formulas used:</value>
+  </data>
+  <data name="RptUnique_txt_31" xml:space="preserve">
+    <value>User defined functions used:</value>
+  </data>
+  <data name="RptUnique_txt_32" xml:space="preserve">
+    <value>No user defined functions used:</value>
+  </data>
+  <data name="RptUnique_txt_33" xml:space="preserve">
+    <value>Formulas used which refer to own worksheet:</value>
+  </data>
+  <data name="RptUnique_txt_34" xml:space="preserve">
+    <value>No formulas used which refer to own worksheet:</value>
+  </data>
+  <data name="RptUnique_txt_35" xml:space="preserve">
+    <value>Formulas used which occur only once on sheet:</value>
+  </data>
+  <data name="RptUnique_txt_36" xml:space="preserve">
+    <value>No formulas used which occur only once on sheet:</value>
+  </data>
+  <data name="RptUnique_txt_37" xml:space="preserve">
+    <value>Sheets excluded (</value>
+  </data>
+  <data name="RptUnique_txt_38" xml:space="preserve">
+    <value>No sheets are excluded</value>
+  </data>
+  <data name="RptUnique_txt_39" xml:space="preserve">
+    <value>Unique Formula  Report Finished</value>
+  </data>
+  <data name="RptUnique_txt_4" xml:space="preserve">
+    <value>(No intersheetformulas)</value>
+  </data>
+  <data name="RptUnique_txt_40" xml:space="preserve">
+    <value>This sheet contains no formulas</value>
+  </data>
+  <data name="RptUnique_txt_5" xml:space="preserve">
+    <value>Names </value>
+  </data>
+  <data name="RptUnique_txt_6" xml:space="preserve">
+    <value>Functions </value>
+  </data>
+  <data name="RptUnique_txt_7" xml:space="preserve">
+    <value>#link to saved open workbook</value>
+  </data>
+  <data name="RptUnique_txt_8" xml:space="preserve">
+    <value>#Link to unsaved workbook</value>
+  </data>
+  <data name="RptUnique_txt_9" xml:space="preserve">
+    <value>References to </value>
+  </data>
+  <data name="RptSummary2_txt_1" xml:space="preserve">
+    <value>Overview 3 Initialize</value>
+  </data>
+  <data name="RptSummary2_txt_2" xml:space="preserve">
+    <value>Overview 3 Comments</value>
+  </data>
+  <data name="RptSummary2_txt_3" xml:space="preserve">
+    <value>Overview 3 Names</value>
+  </data>
+  <data name="RptSummary2_txt_4" xml:space="preserve">
+    <value>Overview 3 VB</value>
+  </data>
+  <data name="RptSummary2_txt_5" xml:space="preserve">
+    <value>Finalizing</value>
+  </data>
+  <data name="General_ErrorNull" xml:space="preserve">
+    <value>#NULL!</value>
+  </data>
+  <data name="General_ErrorDiv" xml:space="preserve">
+    <value>#DIV/0!</value>
+  </data>
+  <data name="General_ErrorValue" xml:space="preserve">
+    <value>#VALUE!</value>
+  </data>
+  <data name="General_ErrorRef" xml:space="preserve">
+    <value>#REF!</value>
+  </data>
+  <data name="General_ErrorName" xml:space="preserve">
+    <value>#NAME?</value>
+  </data>
+  <data name="General_ErrorNum" xml:space="preserve">
+    <value>#NUM!</value>
+  </data>
+  <data name="General_ErrorNA" xml:space="preserve">
+    <value>#N/A!</value>
+  </data>
+  <data name="Register_cbBuy" xml:space="preserve">
+    <value>Buy</value>
+  </data>
+  <data name="Register_cbClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Register_cbExtend" xml:space="preserve">
+    <value>Extend trial</value>
+  </data>
+  <data name="Register_cbRegister" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Register_cbValidate" xml:space="preserve">
+    <value>Validate License</value>
+  </data>
+  <data name="Register_lbRegisteredTo" xml:space="preserve">
+    <value>Registered to: </value>
+  </data>
+  <data name="Register_lbText" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Register_lbTitle" xml:space="preserve">
+    <value>ExcelAnalyzer, 15 day trial version</value>
+  </data>
+  <data name="Register_Title" xml:space="preserve">
+    <value>Buy now</value>
+  </data>
+</root>

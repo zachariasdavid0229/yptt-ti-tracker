@@ -1,0 +1,106 @@
+{
+  "sheet_count": 22,
+  "formula_cells": 4615,
+  "raw_error_cells": 466,
+  "formula_error_cells": 72,
+  "external_formula_cells": 60,
+  "pivot_tables": 54,
+  "calc_chain_entries": 4615,
+  "top_functions": [
+    [
+      "GETPIVOTDATA",
+      269
+    ],
+    [
+      "YEAR",
+      132
+    ],
+    [
+      "MONTHS",
+      117
+    ],
+    [
+      "ROW",
+      64
+    ],
+    [
+      "VLOOKUP",
+      60
+    ],
+    [
+      "IF",
+      59
+    ],
+    [
+      "YEARS",
+      45
+    ],
+    [
+      "SUM",
+      19
+    ],
+    [
+      "TODAY",
+      6
+    ],
+    [
+      "AMT",
+      2
+    ],
+    [
+      "SUBTOTAL",
+      1
+    ]
+  ],
+  "dependency_edges": 4,
+  "error_groups": [
+    [
+      [
+        "Site_SUL",
+        "cell_error",
+        "#N/A"
+      ],
+      355
+    ],
+    [
+      [
+        "Dashboard SUL",
+        "cell_error",
+        "#REF!"
+      ],
+      71
+    ],
+    [
+      [
+        "Dashboard SUL",
+        "formula_error",
+        "#REF!"
+      ],
+      71
+    ],
+    [
+      [
+        "Site_KAL",
+        "cell_error",
+        "#N/A"
+      ],
+      39
+    ],
+    [
+      [
+        "Site_KAL",
+        "cell_error",
+        "#VALUE!"
+      ],
+      1
+    ],
+    [
+      [
+        "Site_KAL",
+        "formula_error",
+        "#VALUE!"
+      ],
+      1
+    ]
+  ]
+}

@@ -1,0 +1,7 @@
+**********************
+*Blocked file problem*
+**********************
+
+If Excel fails to open the file, this is due to a recent update which blocks files downloaded from the internet without displaying any warning messages. To resolve this:
+- Right-click the file and select Properties
+- Click the Unblock button near the bottom of the dialog.

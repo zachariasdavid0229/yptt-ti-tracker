@@ -1,0 +1,323 @@
+﻿sheet,column,header,source_role
+Dashboard_2026,B,Connected _2025 - 2026,header
+Dashboard_2026,AP,REGION,header
+Dashboard_2026,AS,OA,header
+Dashboard_2026,AV,NY OA,header
+Dashboard_2026,AY,TOTAL,header
+Dashboard_2026,BB,% OA,header
+Dashboard SUL,B,TI SUL,header
+Site_KAL,A,No,header
+Site_KAL,B,ASSIGNMENT DATE,header
+Site_KAL,C,WID,header
+Site_KAL,D,DU NAME,header
+Site_KAL,E,DU,header
+Site_KAL,F,Site ID,header
+Site_KAL,G,NE ID,header
+Site_KAL,H,Subc,header
+Site_KAL,I,Site Name,header
+Site_KAL,J,Branch,header
+Site_KAL,K,Cluster,header
+Site_KAL,L,RTPO / Kabupaten,header
+Site_KAL,M,Tower Owner,header
+Site_KAL,N,Program,header
+Site_KAL,O,Long,header
+Site_KAL,P,Lat,header
+Site_KAL,Q,Address,header
+Site_KAL,R,Detail SOW,header
+Site_KAL,S,Band,header
+Site_KAL,T,SOW,header
+Site_KAL,U,Dismantle,header
+Site_KAL,V,CAF,header
+Site_KAL,W,Nodin,header
+Site_KAL,X,Site Solution,header
+Site_KAL,Y,Datafill,header
+Site_KAL,Z,Permite Submite,header
+Site_KAL,AA,Permite Realease,header
+Site_KAL,AB,Permite Expired,header
+Site_KAL,AC,Simple Data Preparation (%),header
+Site_KAL,AD,Delivery Order 1,header
+Site_KAL,AE,Delivery Order 2,header
+Site_KAL,AF,Delivery Order 3,header
+Site_KAL,AG,Delivery Note 1,header
+Site_KAL,AH,Delivery Note 2,header
+Site_KAL,AI,Delivery Note 3,header
+Site_KAL,AJ,Material On Site,header
+Site_KAL,AK,LDM,header
+Site_KAL,AL,Delivery Return,header
+Site_KAL,AM,Return Note,header
+Site_KAL,AN,Validation ,header
+Site_KAL,AO,Remaks,header
+Site_KAL,AP,Simple Data Preparation (%),header
+Site_KAL,AQ,TI Partner,header
+Site_KAL,AR,Team On Site,header
+Site_KAL,AS,Clock in Date,header
+Site_KAL,AT,MOS,header
+Site_KAL,AU,HI Start,header
+Site_KAL,AV,HI Done,header
+Site_KAL,AW,HI Progress,header
+Site_KAL,AX,CI ,header
+Site_KAL,AY,CI Status,header
+Site_KAL,AZ,Connected Broadcast,header
+Site_KAL,BA,Connected Date,header
+Site_KAL,BB,Connected Status,header
+Site_KAL,BC,GAP Analysis,header
+Site_KAL,BD,Blocking Issue,header
+Site_KAL,BE,SM Status,header
+Site_KAL,BF,"SM Kitting, PTW & EHS",header
+Site_KAL,BG,SM Dismantle,header
+Site_KAL,BH,SM ATP Status,header
+Site_KAL,BI,SM ATP,header
+Site_KAL,BJ,FI Ineom,header
+Site_KAL,BK,FI Ineom Status,header
+Site_KAL,BL,ATP IEPMS,header
+Site_KAL,BM,Dismantle,header
+Site_KAL,BN,Alarm Status,header
+Site_KAL,BO,DEPEDENCY,header
+Site_KAL,BP,DETAIL DEPEDENCY,header
+Site_KAL,BQ,Clock out Date,header
+Site_KAL,BR,Implementation Duration,header
+Site_KAL,BS,Task Progress,header
+Site_KAL,BT,Task Tamplate,header
+Site_KAL,BU,Remarks,header
+Site_KAL,BV,Simple Closing (%),header
+Site_KAL,BW,Date Submit ATP,header
+Site_KAL,BX,eATP STATUS,header
+Site_KAL,BY,eATP BLOCKING,header
+Site_KAL,BZ,SYSTEM UPLOAD,header
+Site_KAL,CA,APPROVAL DATE,header
+Site_KAL,CB,Simple Closing (%),header
+Site_KAL,CC,BAPA,header
+Site_KAL,CD,BASO,header
+Site_KAL,CE,BAUT/BAST,header
+Site_KAL,CF,BARA,header
+Site_KAL,CG,REMARK,header
+Site_KAL,CH,Simple Closing (%),header
+Site_KAL,CI,STATUS,header
+Site_KAL,CJ,DATE,header
+Site_KAL,CK,HISTORY,header
+Site_KAL,CL,GAP,header
+Site_KAL,CM,gap remark,header
+Site_KAL,CN,PO Status,header
+Site_KAL,CO,PO Number,header
+Site_KAL,CP,PO Release Date,header
+Site_SUL,A,No.,header
+Site_SUL,B,WID,header
+Site_SUL,C,Program CAPEX,header
+Site_SUL,D,SOW Details,header
+Site_SUL,E,Work Type,header
+Site_SUL,F,Site ID Impl,header
+Site_SUL,G,Site Name Impl,header
+Site_SUL,H,Band,header
+Site_SUL,I,Daily REMARK,header
+Site_SUL,J,ZTE ZONE,header
+Site_SUL,K,Lat,header
+Site_SUL,L,Long,header
+Site_SUL,M,Partner Actual,header
+Site_SUL,N,Monthly Target,header
+Site_SUL,O,Monthly Assignment,header
+Site_SUL,P,PO Year,header
+Site_SUL,Q,Years Assigned,header
+Site_SUL,R,WID Recti,header
+Site_SUL,S,Remark,header
+Site_SUL,T,Type Antenna BOQ,header
+Site_SUL,U,Qty BOQ Antenna,header
+Site_SUL,V,Mounting Bracket,header
+Site_SUL,W,RRU Type,header
+Site_SUL,X,Qty RRU,header
+Site_SUL,Y,Cabinet,header
+Site_SUL,Z,BBU,header
+Site_SUL,AA,CCE1B,header
+Site_SUL,AB,CCF0,header
+Site_SUL,AC,BPN2,header
+Site_SUL,AD,BPQ2,header
+Site_SUL,AE,GPS,header
+Site_SUL,AF,PM5,header
+Site_SUL,AG,DCPD7,header
+Site_SUL,AH,DCPD10,header
+Site_SUL,AI,CR0,header
+Site_SUL,AJ,optic,header
+Site_SUL,AK,Filter,header
+Site_SUL,AL,Dismentle Antenna BOQ,header
+Site_SUL,AM,Qty Antenna,header
+Site_SUL,AN,Mounting Bracker,header
+Site_SUL,AO,Dismentel Filter,header
+Site_SUL,AP,Qty Filter,header
+Site_SUL,AQ,Dismentle RRU,header
+Site_SUL,AR,Qty RRU,header
+Site_SUL,AS,Dismentle Board,header
+Site_SUL,AT,TP,header
+Site_SUL,AU,Status Permit,header
+Site_SUL,AV,Permit Release,header
+Site_SUL,AW,Permit Ineom,header
+Site_SUL,AX,DOID,header
+Site_SUL,AY,PIC Muver,header
+Site_SUL,AZ,PIC TI,header
+Site_SUL,BA,TI Engineer,header
+Site_SUL,BB,Site Productivity Status,header
+Site_SUL,BC,Addcost Productivity Status,header
+Site_SUL,BD,Add Cost Amount,header
+Site_SUL,BE,Add Cost Description,header
+Site_SUL,BF,Total PO Amt (IDR) No Tax,header
+Site_SUL,BG,MOS,header
+Site_SUL,BH,MOS Info,header
+Site_SUL,BI,HI Start,header
+Site_SUL,BJ,HI Done,header
+Site_SUL,BK,HI Info,header
+Site_SUL,BL,HI Progress,header
+Site_SUL,BM, Installation Start,header
+Site_SUL,BN,Installation Finished,header
+Site_SUL,BO,Connected Date,header
+Site_SUL,BP,Connected Info,header
+Site_SUL,BQ,GAP Analysis,header
+Site_SUL,BR,Blocking Issues,header
+Site_SUL,BS,SM Status,header
+Site_SUL,BT,"SM Kitting, PTW & EHS",header
+Site_SUL,BU,SM Dismantle,header
+Site_SUL,BV,SM ATP,header
+Site_SUL,BW,ATP Passed,header
+Site_SUL,BX,FI Ineom,header
+Site_SUL,BY,Ineom Passed,header
+Site_SUL,BZ,Asset Ineom,header
+Site_SUL,CA,Ineom Dismentel,header
+Site_SUL,CB,Blocking SM & Ineom,header
+Site_SUL,CC,Status Dismentle,header
+Site_SUL,CD,Dismantle Date,header
+Site_SUL,CE,Status Material,header
+Site_SUL,CF,DR & LDM Status,header
+Site_SUL,CG,Date Inbond,header
+Site_SUL,CH,DRID,header
+Site_SUL,CI,PIC Mover,header
+Site_SUL,CJ,Remark INBOUND,header
+Site_SUL,CK,Date Upload,header
+Site_SUL,CL,Blocking BARA,header
+Site_SUL,CM,eATP Submit Date,header
+Site_SUL,CN,eATP Approve TSEL Date,header
+Site_SUL,CO,eATP Status,header
+Site_SUL,CP,PO Status,header
+Site_SUL,CQ,PO Number,header
+Site_SUL,CR,PO Release Date,header
+Site_SUL,CS,BAUT Approved by Tsel,header
+Site_SUL,CT,BAUT Status,header
+Site_SUL,CU,BAST SAP Status,header
+Site_SUL,CV,YPMS Status,header
+Site_SUL,CW,inv status,header
+Site_SUL,CX,BOQ Source,header
+Site_Upgrade PLN,A,WID,header
+Site_Upgrade PLN,B,SOW Planning,header
+Site_Upgrade PLN,C,Site ID Impl,header
+Site_Upgrade PLN,D,Site Name Impl,header
+Site_Upgrade PLN,E,Work Type,header
+Site_Upgrade PLN,F,Actual registred (for WCC),header
+Site_Upgrade PLN,G,PLN ID ,header
+Site_Upgrade PLN,H,Registration code,header
+Site_Upgrade PLN,I,Registration date,header
+Site_Upgrade PLN,J,Survey date,header
+Site_Upgrade PLN,K,Survey result,header
+Site_Upgrade PLN,L,remarks Upgrade,header
+Site_Upgrade PLN,M,remarks,header
+Site_Upgrade PLN,N,Upgrade Time,header
+Site_Upgrade PLN,O,ATP,header
+Site_Upgrade PLN,P,Total PO Amt (IDR) No Tax,header
+Site_Upgrade PLN,Q,Site PLN Productivity Status,header
+Pvt Productivity TI,B,"PRODUCTIVITY TI JAN,FEB,MARET,APRIL MEY, JUNI, JULI AGUSTUS 2026",header
+Sheet2,B,WID,header
+Sheet2,C,Site ID,header
+Sheet2,D,Region,header
+Sheet2,E,Pending,header
+Sheet2,F,Tim,header
+Sheet2,G,Remark,header
+Sheet2,H,Permit realist,header
+Sheet2,I,Plan,header
+Pivot Sul,BS,# MOS,header
+Pivot Sul,CB,# HI Done,header
+Pivot Sul,CJ,# Connected,header
+Pivot Sul,DL,Assignment Month,header
+Inbound,A,No.,header
+Inbound,B,Region,header
+Inbound,C,WID,header
+Inbound,D,Freq,header
+Inbound,E,SOW,header
+Inbound,F,Work Type,header
+Inbound,G,Site Name ,header
+Inbound,H,Site ID,header
+Inbound,I,Region,header
+Inbound,J,Name Team,header
+Inbound,K,Muver By,header
+Inbound,L,Status DR,header
+Inbound,M,No DR,header
+Inbound,N,Date Realise ,header
+Inbound,O,Date Pickup,header
+Inbound,P,Date Inbound ,header
+Inbound,Q,Status LDM,header
+Inbound,R,Status Tagging,header
+Inbound,S,Detail Material,header
+Inbound,T,Remark,header
+Inbound Return,A,WID,header
+Inbound Return,B,Freq,header
+Inbound Return,C,SOW,header
+Inbound Return,D,Work Type,header
+Inbound Return,E,Site Name ,header
+Inbound Return,F,Site ID,header
+Inbound Return,G,Name Team ,header
+Inbound Return,H,Region,header
+Inbound Return,I,Muver By,header
+Inbound Return,J,No DRID,header
+Inbound Return,K,Date Realese,header
+Inbound Return,L,Date Pickup,header
+Inbound Return,M,Date Inbound,header
+Inbound Return,N,Status Inbound,header
+Inbound Return,O,Detail Material,header
+LOM,A,WID,header
+LOM,B,Site ID,header
+LOM,C,Site Name Impl,header
+LOM,D,Work Type,header
+LOM,E,Material Name,header
+LOM,F,QTY,header
+Team List,A,No.,header
+Team List,B,Name,header
+Team List,C,Position,header
+Team List,D,Kontak,header
+Team List,E,Email,header
+Team List,F,Region / City,header
+Team List,G,Akun Iepms,header
+Team List,H,Info Team,header
+Team List,N,No.,header
+Team List,O,Name,header
+Team List,P,Position,header
+Team List,Q,ID Card No.,header
+Team List,R,Kontak,header
+Team List,S,Email,header
+Team List,T,Region / City,header
+Team List,U,epms/iCenter,header
+Team List,V,Ineom,header
+Team List,W,Info Team,header
+Team List,X,WAH,header
+Team List,Y,remarks,header
+Ineom,A,W1- W2 April,header
+Validasi,A,ZTE ZONE,header
+Validasi,B,TI Engineer,header
+Validasi,C,Aging SM,header
+Validasi,D,GAP Analysis,header
+Validasi,E,Dismantle Status,header
+Validasi,F,Status SM Kitting/ SM EHS /SM dismantle/SM ATP,header
+Validasi,G,Status LDM,header
+Validasi,H,Tagging ineom,header
+Validasi,I,Status SM ATP,header
+Validasi,J,BOQ,header
+Validasi,L,BARA,header
+Validasi,M,BAPA ,header
+Validasi,N,ATP,header
+Validasi,AE,DMT,header
+Validasi2,A,IMPLEMENTASI,header
+Validasi2,D,ELV_EOA,header
+Validasi2,F,SOAC,header
+Validasi2,H,SSV,header
+Validasi2,J,SQAC,header
+Validasi2,L,EATP,header
+Validasi2,N,EBAPA,header
+Validasi2,P,EBAPA TPAS,header
+Validasi2,R,BAUT,header
+Validasi2,T,BAST,header
+Validasi2,V,SSV,header
+Validasi2,X,Permit,header
+Validasi2,Y,Donor,header

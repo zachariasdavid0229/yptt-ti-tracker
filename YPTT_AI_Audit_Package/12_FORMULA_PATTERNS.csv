@@ -1,0 +1,104 @@
+﻿sheet,count,normalized_formula
+Site_SUL,1740,ROW()-ROW(CELL)
+Site_SUL,1602,YEAR(CELL)
+Site_KAL,111,"IF(CELL="""",""Permit NY Requested"",IF(CELL="""",""Permit NY Release"",IF(CELL-TODAY()<N,""Expired Need Extend"",""Permit Ready"")))"
+Site_KAL,108,"IF(CELL=""APPROVED"",""eATP"",""Task Progress Pending"")"
+Site_KAL,107,"IF(CELL=""eATP Approved Tsel"",""BAST"",""IN PROGRESS"")"
+Dashboard_2026,95,CELL/CELL
+Site_KAL,95,"IF(CELL=""APPROVED"",""DOP Finish"",""NY VALIDATION"")"
+Site_KAL,76,"IF(CELL=""APPROVED"",""PROPOSE INVOICE"",""NY APPROVED"")"
+Site_KAL,72,CELL-CELL
+Dashboard_2026,52,CELL+CELL-CELL
+Dashboard SUL,39,CELL/CELL
+Inbound,35,ROW()-ROW(CELL)
+Site_SUL,34,"VLOOKUP(CELL,'[N]Site List TI'!$B:$F,N,N)"
+Dashboard Sulawesi,30,CELL-CELL
+Dashboard Sulawesi,30,CELL/CELL
+Dashboard Sulawesi,27,CELL
+Dashboard SUL,19,CELL+CELL-CELL
+Dashboard Sulawesi,17,SUM(CELL:CELL)
+Dashboard_2026,15,CELL-CELL+CELL
+Site_KAL,12,"VLOOKUP(CELL,[N]sitelist!$G:$J,N,N)"
+Dashboard_2026,11,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (Connected Date)"",N,""Years (Connected Date)"",N)"
+Dashboard SUL,11,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (MOS)"",N)"
+Dashboard SUL,11,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (HI Done)"",N)"
+Dashboard SUL,11,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (Connected Date)"",N)"
+Dashboard_2026,9,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (MOS)"",N,""Years (MOS)"",N)"
+Dashboard_2026,9,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (HI Done)"",N,""Years (HI Done)"",N)"
+Site_KAL,9,"VLOOKUP(CELL,[N]sitelist!$G:$L,N,N)"
+Dashboard_2026,8,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (MOS)"",N)"
+Dashboard_2026,8,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (Connected Date)"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""Monthly Assignment"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""Connected Date"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""ATP Passed"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""Ineom Passed"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""Connected Date"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""ATP Passed"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""Ineom Passed"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""Connected Date"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""ATP Passed"",N)"
+Dashboard Sulawesi,8,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""Ineom Passed"",N)"
+Site_KAL,8,CELL
+Dashboard_2026,7,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (HI Done)"",N,""Years (HI Done)"",N)"
+Dashboard Sulawesi,7,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""Monthly Assignment"",N)"
+Dashboard_2026,6,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (MOS)"",N)"
+Dashboard_2026,6,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (HI Done)"",N)"
+Dashboard_2026,6,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (HI Done)"",N)"
+Dashboard Sulawesi,6,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""Monthly Assignment"",N)"
+Dashboard_2026,5,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL,""Months (Connected Date)"",N)"
+Dashboard_2026,5,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (MOS)"",N,""Years (MOS)"",N)"
+Dashboard Sulawesi,5,CELL*N
+Dashboard_2026,4,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL,""Months (Connected Date)"",N,""Years (Connected Date)"",N)"
+Site_KAL,4,"VLOOKUP(CELL,'[N]TRACKER YPTT'!$B:$AO,N,N)"
+Dashboard_2026,3,CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL
+Dashboard_2026,3,CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL
+Dashboard SUL,3,CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL+CELL
+Dashboard_2026,2,CELL
+Dashboard_2026,2,CELL-CELL
+Dashboard_2026,2,SUM(CELL:CELL)
+Dashboard Sulawesi,2,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""eATP Status"",""N-eATP Approved Tsel"")"
+Dashboard Sulawesi,2,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""eATP Status"",""N-eATP Approved Tsel"")"
+Dashboard_2026,1,"GETPIVOTDATA(""WID"",'Pivot Sul'!CELL)+GETPIVOTDATA(""WID"",'Pivot Sul'!CELL)"
+Dashboard_2026,1,"GETPIVOTDATA(""WID"",'Pivot Kal'!CELL)"
+Dashboard SUL,1,N+N
+Dashboard SUL,1,CELL-CELL+CELL
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL)"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of MOS"",'Pvt Dash Sul'!CELL)"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""SM Kitting, PTW & EHS"",""N-Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of HI Done"",'Pvt Dash Sul'!CELL)"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of Connected Date"",'Pvt Dash Sul'!CELL)"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM ATP"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""SM ATP"",""passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""SM Dismantle"",""Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""SM Dismantle"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""SM Dismantle"",""Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""Remark INBOUND"",""Inbound"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""FI Ineom"",""Done Tagging"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""eATP Status"",""N-eATP Approved Tsel"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of MOS"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"")+GETPIVOTDATA(""Count of MOS"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""eATP Status"",""N-eATP Approved Tsel"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM ATP"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM Kitting, PTW & EHS"",""N-Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM Kitting, PTW & EHS"",""N-Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of HI Done"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"")+GETPIVOTDATA(""Count of HI Done"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of Connected Date"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"")+GETPIVOTDATA(""Count of Connected Date"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM ATP"",""passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM ATP"",""passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM Dismantle"",""Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM Dismantle"",""Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM Dismantle"",""Progress"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM Dismantle"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""SM Dismantle"",""Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""SM Dismantle"",""Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""Remark INBOUND"",""Inbound"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MAKASSAR"",""FI Ineom"",""Done Tagging"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""MANADO"",""FI Ineom"",""Done Tagging"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM ATP"",""No Need"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM ATP"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of MOS"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM Kitting, PTW & EHS"",""N-Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of HI Done"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""Count of Connected Date"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM ATP"",""passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM Dismantle"",""Passed"")+GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM Dismantle"",""Progress"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""SM Dismantle"",""Passed"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""Remark INBOUND"",""Inbound"")"
+Dashboard Sulawesi,1,"GETPIVOTDATA(""WID"",'Pvt Dash Sul'!CELL,""ZTE ZONE"",""TERNATE"",""FI Ineom"",""Done Tagging"")"
+Site_KAL,1,"VLOOKUP(CELL,'[N]TRACKER YPTT'!$B:$H,N,N)"
+Site_SUL,1,CELL:CELL-Passed
+Site_Upgrade PLN,1,"SUBTOTAL(N,CELL:CELL)"
+Pvt Productivity TI,1,"GETPIVOTDATA(""Sum of Total PO Amt (IDR) No Tax"",CELL)+GETPIVOTDATA(""Sum of Add Cost Amount"",CELL)+GETPIVOTDATA(""Sum of Total PO Amt (IDR) No Tax"",CELL)-CELL"

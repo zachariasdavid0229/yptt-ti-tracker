@@ -1,0 +1,60 @@
+{
+  "source_workbook": "YPTT_TI Tracker_Tsel Project_ 19 Agustus 2026.xlsx",
+  "principles": [
+    "Treat WID as primary business identifier where available.",
+    "Never infer missing values.",
+    "Keep source sheet and cell lineage for every derived metric.",
+    "Do not execute Excel formulas in the browser; translate approved formulas into backend transformations.",
+    "Pivot outputs are derived views, not authoritative raw tables.",
+    "External-link formulas must be replaced by imported source snapshots or explicit API/data-pipeline inputs."
+  ],
+  "entities": {
+    "work_item": {
+      "key": [
+        "WID"
+      ],
+      "source": [
+        "Site_SUL",
+        "Site_KAL",
+        "Inbound",
+        "Inbound Return",
+        "LOM"
+      ]
+    },
+    "site": {
+      "key": [
+        "Site ID",
+        "Site ID Impl"
+      ],
+      "source": [
+        "Site_SUL",
+        "Site_KAL"
+      ]
+    },
+    "person_team": {
+      "source": [
+        "Team List"
+      ]
+    },
+    "validation_status": {
+      "source": [
+        "Validasi",
+        "Validasi2"
+      ]
+    },
+    "dashboard_metric": {
+      "source": [
+        "Dashboard_2026",
+        "Dashboard SUL",
+        "Dashboard Sulawesi"
+      ]
+    }
+  },
+  "lineage_fields": [
+    "source_sheet",
+    "source_cell",
+    "source_formula",
+    "calculated_at",
+    "data_quality_status"
+  ]
+}

@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Build files
+dist/
+build/
+*.min.js
+*.bundle.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.opencode/logs/
+
+# Backup files
+*.backup
+*.bak
