@@ -305,7 +305,7 @@ async function loadTabData(tabName) {
   try {
     if (tabName === 'dashboard') {
       await loadDashboard(false);
-    } else if (tabName === 'site-sul' || tabName === 'site-kal') {
+    } else if (tabName === 'site-sul' || tabName === 'site-kal' || tabName === 'site-pln') {
       await loadSheet(tabName);
     } else if (tabName === 'pivot') {
       await loadSheet(state.activePivot);
