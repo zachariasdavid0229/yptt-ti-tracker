@@ -543,9 +543,136 @@ function parseDash2026Trend(sd) {
 
 const TREND_COLORS = ['#00b4d8', '#00c853', '#ffab00', '#b197fc', '#ff6b81'];
 
+/**
+ * Scan seluruh sheet mencari blok pivot bertumpuk dengan pola:
+ * [Judul Kategori | MAKASSAR | MANADO | TERNATE | Grand Total]
+ * diikuti baris bulan (Jan..) lalu Grand Total.
+ * Setiap blok menghasilkan satu seri: total antar-zona per bulan.
+ * Blok duplikat (kategori + zona sama) hanya dihitung sekali.
+ */
+function parseStackedBlocksTrend(sd) {
+  try {
+    if (!sd || !sd.rows || !sd.rows.length) return null;
+    const CATS = ['ASSIGNMENT', 'SM ATP', 'FI INEOM', 'HI DONE', 'CONNECTED', 'MOS'];
+    const ZONE_HINTS = ['MAKASSAR', 'MANADO', 'TERNATE', 'KENDARI', 'PALU'];
+    const MUP = MONTHS.map(x => x.toUpperCase());
+    const up = v => String(v === undefined || v === null ? '' : v).trim().toUpperCase();
+    const rows = sd.rows;
+
+    const blocks = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      for (let c = 0; c < Math.min(r.length, 14); c++) {
+        const cell = up(r[c]);
+        if (!CATS.includes(cell)) continue;
+
+        // Verifikasi pola: sel sesudahnya memuat nama zona
+        let hint = false;
+        for (let k = c + 1; k < Math.min(c + 5, r.length); k++) {
+          if (ZONE_HINTS.includes(up(r[k]))) { hint = true; break; }
+        }
+        if (!hint) continue;
+
+        // Kumpulkan kolom zona sampai Grand Total
+        const zIdx = [];
+        let gtCol = -1;
+        for (let zc = c + 1; zc < r.length; zc++) {
+          const zv = up(r[zc]);
+          if (!zv) continue;
+          if (zv === 'GRAND TOTAL') { gtCol = zc; break; }
+          zIdx.push(zc);
+        }
+        if (!zIdx.length) { if (gtCol >= 0) c = gtCol; continue; }
+
+        // Baris bulan sampai Grand Total / judul kategori lain di kolom ini
+        const months = [];
+        for (let rr = i + 1; rr < rows.length; rr++) {
+          const lr = rows[rr];
+          if (c >= lr.length) continue;
+          const label = up(lr[c]);
+          if (!label) continue;
+          if (label === 'GRAND TOTAL') break;
+          if (CATS.includes(label)) break;
+          const vals = zIdx.map(z => Number(lr[z]) || 0);
+          const ex = months.find(m => m.label === label);
+          if (ex) {
+            ex.vals = ex.vals.map((v, ix) => Math.max(v, vals[ix]));
+          } else {
+            months.push({ label: label, vals: vals });
+          }
+        }
+
+        if (months.length) blocks.push({ cat: cell, months: months });
+        if (gtCol >= 0) c = gtCol; // lanjutkan scan setelah blok ini
+      }
+    }
+
+    if (!blocks.length) return null;
+
+    // Gabungkan per kategori; blok duplikat identik hanya dihitung sekali
+    const merged = {};
+    const seenSig = {};
+    blocks.forEach(b => {
+      const sig = b.cat + '::' +
+        b.months.map(m => m.label).join(',').toUpperCase() + '::' +
+        b.months.map(m => m.vals.reduce((x, y) => x + y, 0)).join(',');
+      if (seenSig[sig]) return;
+      seenSig[sig] = true;
+      if (!merged[b.cat]) merged[b.cat] = {};
+      b.months.forEach(m => {
+        const key = m.label.toUpperCase();
+        // Hanya label bulan sah (JAN..DES); label status diabaikan
+        if (MUP.indexOf(key.substring(0, 3)) === -1 || key.length > 3) return;
+        merged[b.cat][key] = (merged[b.cat][key] || 0) +
+          m.vals.reduce((x, y) => x + y, 0);
+      });
+    });
+
+    // Susun bulan urut Jan..Des
+    const mIdx = v => { const i = MUP.indexOf(v.substring(0, 3)); return i < 0 ? 99 : i; };
+    const allMonths = [];
+    Object.values(merged).forEach(m => Object.keys(m).forEach(k => {
+      if (mIdx(k) === 99) return;
+      if (allMonths.indexOf(k) === -1) allMonths.push(k);
+    }));
+    allMonths.sort((a, b) => mIdx(a) - mIdx(b));
+    if (!allMonths.length) return null;
+
+    const series = Object.keys(merged)
+      .filter(cat => cat !== 'MOS')
+      .map((cat, i) => ({
+        cat: cat,
+        data: allMonths.map(m => merged[cat][m] || 0),
+        colorIdx: i
+      }))
+      .filter(s => s.data.some(v => v > 0)) // buang seri yang nol semua
+      .slice(0, 5)
+      .map((s, i) => ({
+        label: s.cat,
+        data: s.data,
+        borderColor: TREND_COLORS[s.colorIdx % TREND_COLORS.length],
+        backgroundColor: 'transparent',
+        tension: .35,
+        pointRadius: 3,
+        pointBackgroundColor: TREND_COLORS[s.colorIdx % TREND_COLORS.length]
+      }));
+
+    if (series.length < 2) return null;
+    return { months: allMonths, series: series };
+  } catch (e) { return null; }
+}
+
 function renderTrendChart() {
   const card = document.getElementById('trendCard');
-  const t = parseDash2026Trend(state.dashboard && state.dashboard.dashboard_2026);
+  const sdD26 = state.dashboard && state.dashboard.dashboard_2026;
+  const sdPvt = state.dashboard && state.dashboard.pvt_dash_sul;
+
+  // Prioritas: layout Qty/Plan/Ach asli -> blok pivot bertumpuk (d26 -> pvt)
+  let t = parseDash2026Trend(sdD26) ||
+          parseStackedBlocksTrend(sdD26) ||
+          parseStackedBlocksTrend(sdPvt);
+
   if (!t) { if (card) card.style.display = 'none'; return; }
   if (card) card.style.display = '';
 
@@ -556,15 +683,7 @@ function renderTrendChart() {
     type: 'line',
     data: {
       labels: t.months,
-      datasets: t.series.map((s, i) => ({
-        label: s.label,
-        data: s.data,
-        borderColor: TREND_COLORS[i % TREND_COLORS.length],
-        backgroundColor: 'transparent',
-        tension: .35,
-        pointRadius: 3,
-        pointBackgroundColor: TREND_COLORS[i % TREND_COLORS.length]
-      }))
+      datasets: t.series
     },
     options: chartLineOptions()
   });
