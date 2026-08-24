@@ -22,7 +22,9 @@ var SHEETS = {
   SITE_PLN: 'Site_Upgrade PLN',
   DASH_2026: 'Dashboard_2026',
   DASH_SUL: 'Dashboard Sulawesi',
+  DASH_SUL_RAW: 'Dashboard SUL',
   PVT_SUL: 'Pvt Dash Sul',
+  PVT_PRODUCTIVITY: 'Pvt Productivity TI',
   PIVOT_KAL: 'Pivot Kal',
   PIVOT_SUL: 'Pivot Sul',
   INBOUND: 'Inbound',
@@ -33,7 +35,10 @@ var SHEETS = {
   LOM: 'LOM',
   INEOM: 'Ineom',
   SUMMARY_KAL: 'Summary Kal',
-  SUMMARY_SUL: 'Summary Sul'
+  SUMMARY_SUL: 'Summary Sul',
+  SHEET1: 'Sheet1',
+  SHEET2: 'Sheet2',
+  CHART_TEAM: 'Chart team'
 };
 
 /* Data quality status constants (from AI System Prompt) */
