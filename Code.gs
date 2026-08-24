@@ -80,6 +80,22 @@ function handleRequest_(method, e) {
     if (body && body.action) action = body.action;
     if (!action && params.path) action = params.path;
 
+    // Input validation
+    if (body) {
+      if (body.rowIndex !== undefined) {
+        body.rowIndex = parseInt(body.rowIndex, 10);
+        if (isNaN(body.rowIndex) || body.rowIndex < 2) {
+          return jsonOutput_(err_('rowIndex harus angka >= 2'));
+        }
+      }
+      if (body.data && typeof body.data !== 'object') {
+        return jsonOutput_(err_('data harus berupa object'));
+      }
+      if (body.sheet && typeof body.sheet !== 'string') {
+        return jsonOutput_(err_('sheet harus berupa string'));
+      }
+    }
+
     var result;
 
     switch (action) {

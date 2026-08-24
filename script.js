@@ -262,12 +262,29 @@ function showToast(msg, type = 'success') {
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  btn.addEventListener('keydown', e => {
+    const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+    const idx = tabs.indexOf(btn);
+    let next = -1;
+    if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    if (next >= 0) {
+      e.preventDefault();
+      tabs[next].focus();
+      switchTab(tabs[next].dataset.tab);
+    }
+  });
 });
 
 function switchTab(tabName) {
   state.currentTab = tabName;
-  document.querySelectorAll('.tab-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.tab === tabName));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const isActive = b.dataset.tab === tabName;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive);
+  });
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tabName));
   loadTabData(tabName);
@@ -338,16 +355,6 @@ function renderDashboardStage3() {
   renderMiniTable('pivotKalTable', state.dashboard && state.dashboard.pivot_kal);
   renderLatestTable();
   renderHeaderStats();
-}
-
-// Toggle dashboard content (collapse/expand)
-function toggleDashboardContent(btn) {
-  const card = btn.closest('.card');
-  card.classList.toggle('collapsed');
-  const content = card.querySelector('> *:last-child');
-  if (content) {
-    content.style.display = card.classList.contains('collapsed') ? 'none' : 'block';
-  }
 }
 
 async function doLoadDashboard(force) {
@@ -1593,17 +1600,29 @@ function sortBy(sheetKey, col) {
 ['site-sul', 'site-kal'].forEach(key => {
   ['zoneFilter-', 'search-'].forEach(prefix => {
     const el = document.getElementById(prefix + key);
-    if (el) el.addEventListener('input', () => {
-      state.page[key] = 1;
-      renderCrudTable(key);
-    });
+    if (!el) return;
+    if (prefix === 'search-') {
+      let t = null;
+      el.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => { state.page[key] = 1; renderCrudTable(key); }, 300);
+      });
+    } else {
+      el.addEventListener('input', () => {
+        state.page[key] = 1;
+        renderCrudTable(key);
+      });
+    }
   });
 });
 const searchActive = document.getElementById('search-active');
-if (searchActive) searchActive.addEventListener('input', () => {
-  state.page[state.activePivot] = 1;
-  renderCrudTable(state.activePivot);
-});
+if (searchActive) {
+  let t = null;
+  searchActive.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => { state.page[state.activePivot] = 1; renderCrudTable(state.activePivot); }, 300);
+  });
+}
 
 /* ==================== Filter Zona (toolbar) ==================== */
 
@@ -1885,7 +1904,22 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
   if (e.target.id === 'modalOverlay') closeModal();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') { closeModal(); return; }
+  // Focus trap: keep Tab inside modal when open
+  if (e.key === 'Tab' && !document.getElementById('modalOverlay').classList.contains('hidden')) {
+    const modal = document.querySelector('.modal');
+    const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 });
 
 /* ==================== Utils ==================== */

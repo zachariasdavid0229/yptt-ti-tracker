@@ -4,13 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YPTT TI Tracker</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260909">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <meta name="description" content="Monitoring Site TI - Sulawesi & Kalimantan 2026. Dashboard KPI, data site, dan pivot table untuk proyek TI YPTT.">
+  <link rel="stylesheet" href="style.css?v=20260825">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Langsung ke konten</a>
 
   <!-- ===== SPLASH SCREEN ALIEN BLUE ===== -->
   <div id="splashScreen">
@@ -62,17 +60,17 @@
   </header>
 
   <!-- Tab Navigation -->
-  <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="site-sul">Site SUL</button>
-    <button class="tab-btn" data-tab="site-kal">Site KAL</button>
-    <button class="tab-btn" data-tab="pivot">Pivot Data</button>
+  <nav class="tab-nav" aria-label="Navigasi tab utama">
+    <button class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true" aria-controls="tab-dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="site-sul" role="tab" aria-selected="false" aria-controls="tab-site-sul">Site SUL</button>
+    <button class="tab-btn" data-tab="site-kal" role="tab" aria-selected="false" aria-controls="tab-site-kal">Site KAL</button>
+    <button class="tab-btn" data-tab="pivot" role="tab" aria-selected="false" aria-controls="tab-pivot">Pivot Data</button>
   </nav>
 
-  <main class="container">
+  <main class="container" id="main-content">
 
     <!-- ==================== TAB DASHBOARD ==================== -->
-    <section id="tab-dashboard" class="tab-panel active">
+    <section id="tab-dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
 
       <!-- ===== HEADER DASHBOARD ===== -->
       <header class="dashboard-header">
@@ -158,15 +156,15 @@
     </section>
 
     <!-- ==================== TAB SITE SUL ==================== -->
-    <section id="tab-site-sul" class="tab-panel">
+    <section id="tab-site-sul" class="tab-panel" role="tabpanel" aria-labelledby="tab-site-sul">
       <div class="toolbar">
         <label for="zoneFilter-site-sul">Filter Zona:</label>
         <select id="zoneFilter-site-sul" class="select"><option value="">-- Semua --</option></select>
         <input type="text" id="search-site-sul" class="input" placeholder="Cari...">
         <span id="count-site-sul" class="badge"></span>
-        <button class="btn btn-primary" onclick="showAddModal('site-sul')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet('site-sul', true)">Refresh</button>
-        <button class="btn btn-secondary" onclick="toggleFilterPanel('site-sul')">Filter Kolom</button>
+        <button class="btn btn-primary" onclick="showAddModal('site-sul')" aria-label="Tambah data Site SUL">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-sul', true)" aria-label="Refresh data Site SUL">Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleFilterPanel('site-sul')" aria-label="Toggle filter kolom Site SUL">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-sul"></div>
       <div class="card table-card">
@@ -178,15 +176,15 @@
     </section>
 
     <!-- ==================== TAB SITE KAL ==================== -->
-    <section id="tab-site-kal" class="tab-panel">
+    <section id="tab-site-kal" class="tab-panel" role="tabpanel" aria-labelledby="tab-site-kal">
       <div class="toolbar">
         <label for="zoneFilter-site-kal">Filter Zona:</label>
         <select id="zoneFilter-site-kal" class="select"><option value="">-- Semua --</option></select>
         <input type="text" id="search-site-kal" class="input" placeholder="Cari...">
         <span id="count-site-kal" class="badge"></span>
-        <button class="btn btn-primary" onclick="showAddModal('site-kal')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet('site-kal', true)">Refresh</button>
-        <button class="btn btn-secondary" onclick="toggleFilterPanel('site-kal')">Filter Kolom</button>
+        <button class="btn btn-primary" onclick="showAddModal('site-kal')" aria-label="Tambah data Site KAL">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet('site-kal', true)" aria-label="Refresh data Site KAL">Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleFilterPanel('site-kal')" aria-label="Toggle filter kolom Site KAL">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-site-kal"></div>
       <div class="card table-card">
@@ -198,7 +196,7 @@
     </section>
 
     <!-- ==================== TAB PIVOT DATA ==================== -->
-    <section id="tab-pivot" class="tab-panel">
+    <section id="tab-pivot" class="tab-panel" role="tabpanel" aria-labelledby="tab-pivot">
       <div class="toolbar">
         <label for="pivotSelect">Pilih Tabel:</label>
         <select id="pivotSelect" class="select">
@@ -211,9 +209,9 @@
       <div class="toolbar">
         <input type="text" id="search-pvt-dash-sul" class="input" placeholder="Cari...">
         <span id="count-pvt-dash-sul" class="badge"></span>
-        <button class="btn btn-primary" id="addPivotBtn" onclick="showAddModal('pvt-dash-sul')">+ Tambah</button>
-        <button class="btn btn-secondary" onclick="loadSheet(state.activePivot, true)">Refresh</button>
-        <button class="btn btn-secondary" onclick="toggleFilterPanel(state.activePivot)">Filter Kolom</button>
+        <button class="btn btn-primary" id="addPivotBtn" onclick="showAddModal('pvt-dash-sul')" aria-label="Tambah data pivot">+ Tambah</button>
+        <button class="btn btn-secondary" onclick="loadSheet(state.activePivot, true)" aria-label="Refresh data pivot">Refresh</button>
+        <button class="btn btn-secondary" onclick="toggleFilterPanel(state.activePivot)" aria-label="Toggle filter kolom pivot">Filter Kolom</button>
       </div>
       <div class="card filter-panel hidden" id="filterPanel-active"></div>
       <div class="card table-card">
@@ -227,11 +225,11 @@
   </main>
 
   <!-- Modal Tambah/Edit/Detail -->
-  <div id="modalOverlay" class="modal-overlay hidden">
+  <div id="modalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
       <div class="modal-header">
         <h2 id="modalTitle">Data</h2>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <button class="modal-close" onclick="closeModal()" aria-label="Tutup modal">&times;</button>
       </div>
       <div class="modal-body">
         <form id="dataForm"></form>
@@ -247,6 +245,7 @@
     YPTT TI Tracker &copy; 2026 &mdash; Data source: Google Spreadsheet
   </footer>
 
-  <script src="script.js?v=20260909"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="script.js?v=20260825" defer></script>
 </body>
 </html>
