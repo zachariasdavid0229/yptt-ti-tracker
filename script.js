@@ -1130,7 +1130,7 @@ function splitColumnBlocks(sd) {
 }
 
 /** Pecah blok yang lebih lebar dari maxCols; kolom label (pertama) diulang */
-function explodeWideBlocks(blocks, maxCols = 11) {
+function explodeWideBlocks(blocks, maxCols = 7) {
   const out = [];
   blocks.forEach(b => {
     if (b.size <= maxCols || b.size < 4) { out.push(b); return; }
