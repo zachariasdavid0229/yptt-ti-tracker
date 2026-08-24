@@ -124,6 +124,20 @@
         <div class="mini-stack" id="dashSulTable"></div>
       </div>
 
+      <!-- ===== ADMIN TOOLS ===== -->
+      <div class="card" id="adminToolsCard" style="margin-bottom: 16px;">
+        <h2>🛠️ Admin Tools</h2>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button class="btn btn-secondary" id="btnCreateFormulas" onclick="createFormulas()">
+            Buat Formula Hubungan Sheet
+          </button>
+          <span id="formulaStatus" class="badge" style="display: none;"></span>
+        </div>
+        <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-muted);">
+          Membuat formula COUNTIFS untuk menghubungkan data antar sheet (Pivot Sul, Pivot Kal, Dashboard).
+        </p>
+      </div>
+
       <!-- ===== DASHBOARD 2026 (sheet asli) ===== -->
       <div class="collapsible-section collapsed" id="dashboard-section">
         <div class="collapsible-header" onclick="toggleCollapsible('dashboard-section', this)">

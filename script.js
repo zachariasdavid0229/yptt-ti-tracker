@@ -1,6 +1,6 @@
 /* ============ YPTT TI Tracker - Script ============ */
 
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzn6IQbycG4yH8uWfxwCebw5w7YTZlbQ1Xle9eYjni2yp6xj_YGF7Mzm5uaPucrmjVZ/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxSLw2ZTOHK9nuV3p3tyMvqI3pAAZQzuMCQqxEmB1jz_QbmLzslj7L2eEgjB50dMKX5/exec';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ZONE_COLORS = ['#2d6bb8', '#00b4d8', '#4a90d9', '#0077b6', '#8899aa'];
@@ -2074,6 +2074,53 @@ function startSplash(onDone) {
   window.__notifyDataReady = () => {
     setTimeout(() => finish(false), 300);
   };
+}
+
+/* ==================== ADMIN TOOLS ==================== */
+
+/**
+ * Membuat formula hubungan antar sheet (COUNTIFS)
+ * Memanggil backend action 'create-formulas'
+ */
+async function createFormulas() {
+  const btn = document.getElementById('btnCreateFormulas');
+  const status = document.getElementById('formulaStatus');
+  
+  if (!confirm('Buat formula hubungan sheet?\n\nIni akan membuat formula COUNTIFS di:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nLanjutkan?')) {
+    return;
+  }
+  
+  // Disable button, show loading
+  btn.disabled = true;
+  btn.textContent = 'Membuat formula...';
+  status.style.display = 'inline';
+  status.textContent = 'Processing...';
+  status.className = 'badge';
+  
+  try {
+    const res = await fetch(API_BASE_URL + '?action=create-formulas', {
+      redirect: 'follow'
+    });
+    const json = await res.json();
+    
+    if (json.status === 'ok') {
+      status.textContent = 'Berhasil!';
+      status.className = 'badge badge-success';
+      alert('Formula berhasil dibuat!\n\nSheet yang sudah di-update:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nSilakan cek Google Spreadsheet.');
+    } else {
+      status.textContent = 'Gagal';
+      status.className = 'badge badge-error';
+      alert('Gagal membuat formula: ' + (json.message || 'Unknown error'));
+    }
+  } catch (err) {
+    status.textContent = 'Error';
+    status.className = 'badge badge-error';
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Buat Formula Hubungan Sheet';
+    setTimeout(() => { status.style.display = 'none'; }, 5000);
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {

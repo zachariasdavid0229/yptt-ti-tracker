@@ -192,6 +192,12 @@ function handleRequest_(method, e) {
         result = ok_({}, 'Data berhasil dihapus');
         break;
 
+      // ---------- FORMULA CONNECTIONS ----------
+      case 'create-formulas':
+      case 'api/create-formulas':
+        result = ok_(createAllFormulas(), 'Formula connections berhasil dibuat');
+        break;
+
       // ---------- SINKRONISASI MANUAL ----------
       case 'sync':
         result = syncAllData();
@@ -811,3 +817,322 @@ function matchMonth_(text) {
   }
   return -1;
 }
+
+/**
+ * FORMULA CONNECTIONS - Menghubungkan antar sheet dengan formula
+ * 
+ * Jalankan fungsi ini sekali untuk membuat formula penghubung:
+ *   createAllFormulas()
+ * 
+ * Fungsi ini akan membuat:
+ * 1. Pivot Sul - aggregate dari Site_SUL
+ * 2. Pivot Kal - aggregate dari Site_KAL  
+ * 3. Pvt Dash Sul - aggregate dari Site_SUL
+ * 4. Dashboard_2026 - aggregate dari semua sheet
+ */
+function createAllFormulas() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_KEY);
+  
+  // 1. Create Pivot Sul formulas
+  createPivotSulFormulas_(ss);
+  
+  // 2. Create Pivot Kal formulas
+  createPivotKalFormulas_(ss);
+  
+  // 3. Create Pvt Dash Sul formulas
+  createPvtDashSulFormulas_(ss);
+  
+  // 4. Create Dashboard_2026 formulas
+  createDashboard2026Formulas_(ss);
+  
+  SpreadsheetApp.flush();
+  return 'All formulas created successfully!';
+}
+
+/**
+ * Pivot Sul - Aggregate dari Site_SUL
+ * Menghitung Count of WID per ZTE ZONE per Bulan
+ */
+function createPivotSulFormulas_(ss) {
+  var ws = ss.getSheetByName('Pivot Sul');
+  if (!ws) return;
+  
+  // Clear existing content
+  ws.getRange('A1:EM64').clearContent();
+  
+  // Header
+  ws.getRange('A1').setValue('PO Year');
+  ws.getRange('B1').setValue('2026');
+  ws.getRange('D1').setValue('ZTE ZONE');
+  ws.getRange('E1').setValue('Count of WID');
+  
+  // ZTE ZONE list (dari data Site_SUL)
+  var zones = ['MAKASSAR', 'MANADO', 'TERNATE', 'KENDARI', 'PALU'];
+  
+  // Header zona
+  for (var i = 0; i < zones.length; i++) {
+    ws.getRange(3, 1 + i).setValue(zones[i]);
+  }
+  ws.getRange(3, zones.length + 1).setValue('Grand Total');
+  
+  // Formula: COUNTIFS untuk menghitung WID per zona
+  // Asumsi: Site_SUL!J = ZTE ZONE, Site_SUL!B = WID
+  for (var z = 0; z < zones.length; z++) {
+    var col = String.fromCharCode(65 + z); // A, B, C, D, E
+    ws.getRange(4, 1 + z).setFormula(
+      '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$B:$B,"<>")'
+    );
+  }
+  // Grand Total
+  ws.getRange(4, zones.length + 1).setFormula(
+    '=SUM(E4:E' + (zones.length + 3) + ')'
+  );
+  
+  // Monthly breakdown (Jan-Dec)
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var monthNums = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  
+  ws.getRange(2, 1).setValue('Monthly Breakdown');
+  ws.getRange(3, 1).setValue('Month');
+  
+  for (var m = 0; m < months.length; m++) {
+    ws.getRange(4 + m, 1).setValue(months[m]);
+    
+    // Formula per zona per bulan
+    // Asumsi: Site_SUL!P = PO Year, Site_SUL!J = ZTE ZONE
+    for (var z = 0; z < zones.length; z++) {
+      ws.getRange(4 + m, 2 + z).setFormula(
+        '=COUNTIFS(Site_SUL!$P:$P,"2026",Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$B:$B,"<>")'
+      );
+    }
+  }
+}
+
+/**
+ * Pivot Kal - Aggregate dari Site_KAL
+ * Menghitung Count of WID per Zone per Bulan
+ */
+function createPivotKalFormulas_(ss) {
+  var ws = ss.getSheetByName('Pivot Kal');
+  if (!ws) return;
+  
+  // Clear existing content
+  ws.getRange('A1:AS35').clearContent();
+  
+  // Header
+  ws.getRange('A1').setValue('PO Year');
+  ws.getRange('B1').setValue('2026');
+  ws.getRange('D1').setValue('Zone');
+  ws.getRange('E1').setValue('Count of WID');
+  
+  // Zone list (dari data Site_KAL - perlu diekstrak)
+  // Asumsi: Site_KAL tidak punya kolom ZTE ZONE, jadi kita gunakan Branch/Cluster
+  ws.getRange('A3').setValue('Branch');
+  ws.getRange('B3').setValue('Count');
+  
+  // Formula: COUNTIF per Branch
+  // Asumsi: Site_KAL!J = Branch
+  ws.getRange('A4').setFormula('=UNIQUE(Site_KAL!$J:$J)');
+  ws.getRange('B4').setFormula(
+    '=COUNTIFS(Site_KAL!$J:$J,A4,Site_KAL!$C:$C,"<>")'
+  );
+  
+  // Copy formula down
+  for (var i = 1; i < 20; i++) {
+    ws.getRange(4 + i, 2).setFormula(
+      '=COUNTIFS(Site_KAL!$J:$J,A' + (4 + i) + ',Site_KAL!$C:$C,"<>")'
+    );
+  }
+  
+  // Monthly breakdown
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+  
+  ws.getRange(2, 5).setValue('Monthly Breakdown');
+  ws.getRange(3, 5).setValue('Month');
+  ws.getRange(3, 6).setValue('Count');
+  
+  for (var m = 0; m < months.length; m++) {
+    ws.getRange(4 + m, 5).setValue(months[m]);
+    // Formula: COUNTIF per bulan (berdasarkan ASSIGNMENT DATE)
+    ws.getRange(4 + m, 6).setFormula(
+      '=COUNTIFS(Site_KAL!$B:$B,">="&DATE(2026,' + (m + 1) + ',1),Site_KAL!$B:$K,"<"&DATE(2026,' + (m + 2) + ',1),Site_KAL!$C:$C,"<>")'
+    );
+  }
+}
+
+/**
+ * Pvt Dash Sul - Aggregate dari Site_SUL
+ * Dashboard pivot untuk Sulawesi
+ */
+function createPvtDashSulFormulas_(ss) {
+  var ws = ss.getSheetByName('Pvt Dash Sul');
+  if (!ws) return;
+  
+  // Clear existing content
+  ws.getRange('A1:AP662').clearContent();
+  
+  // Header
+  ws.getRange('A1').setValue('PO Year');
+  ws.getRange('B1').setValue('2026');
+  ws.getRange('A3').setValue('Kategori');
+  ws.getRange('B3').setValue('Bulan');
+  ws.getRange('C3').setValue('Zona');
+  ws.getRange('D3').setValue('Jumlah');
+  
+  // Kategori list
+  var kategori = ['MOS', 'HI Start', 'HI Done', 'Connected'];
+  var zones = ['MAKASSAR', 'MANADO', 'TERNATE'];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+  
+  var row = 4;
+  for (var k = 0; k < kategori.length; k++) {
+    for (var m = 0; m < months.length; m++) {
+      for (var z = 0; z < zones.length; z++) {
+        ws.getRange(row, 1).setValue(kategori[k]);
+        ws.getRange(row, 2).setValue(months[m]);
+        ws.getRange(row, 3).setValue(zones[z]);
+        
+        // Formula: COUNTIFS
+        // Asumsi: Site_SUL!J = ZTE ZONE, Site_SUL!B = WID
+        // Untuk MOS, HI, Connected - perlu kolom status masing-masing
+        ws.getRange(row, 4).setFormula(
+          '=COUNTIFS(Site_SUL!$J:$J,C' + row + ',Site_SUL!$B:$B,"<>")'
+        );
+        
+        row++;
+      }
+    }
+  }
+}
+
+/**
+ * Dashboard_2026 - Aggregate dari semua sheet
+ * Main dashboard dengan multiple pivot sections
+ */
+function createDashboard2026Formulas_(ss) {
+  var ws = ss.getSheetByName('Dashboard_2026');
+  if (!ws) return;
+  
+  // Clear existing content
+  ws.getRange('A1:AP664').clearContent();
+  
+  // === Section 1: Assignment (Count of WID per Bulan per Zona) ===
+  ws.getRange('B4').setValue('PO Year');
+  ws.getRange('C4').setValue('2026');
+  ws.getRange('B6').setValue('Count of WID');
+  ws.getRange('B7').setValue('Assignment');
+  
+  var zones = ['MAKASSAR', 'MANADO', 'TERNATE'];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  
+  // Header zona
+  for (var z = 0; z < zones.length; z++) {
+    ws.getRange(7, 3 + z).setValue(zones[z]);
+  }
+  ws.getRange(7, 3 + zones.length).setValue('Grand Total');
+  
+  // Formula per bulan per zona
+  for (var m = 0; m < months.length; m++) {
+    ws.getRange(8 + m, 2).setValue(months[m]);
+    
+    for (var z = 0; z < zones.length; z++) {
+      // COUNTIFS: Site_SUL!J = ZTE ZONE, Site_SUL!B = WID (not empty)
+      ws.getRange(8 + m, 3 + z).setFormula(
+        '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$B:$B,"<>")'
+      );
+    }
+    
+    // Grand Total
+    ws.getRange(8 + m, 3 + zones.length).setFormula(
+      '=SUM(C' + (8 + m) + ':E' + (8 + m) + ')'
+    );
+  }
+  
+  // === Section 2: SM ATP Status ===
+  ws.getRange('H4').setValue('PO Year');
+  ws.getRange('I4').setValue('2026');
+  ws.getRange('H6').setValue('Count of WID');
+  ws.getRange('H7').setValue('SM ATP');
+  
+  for (var z = 0; z < zones.length; z++) {
+    ws.getRange(7, 9 + z).setValue(zones[z]);
+  }
+  ws.getRange(7, 9 + zones.length).setValue('Grand Total');
+  
+  // SM ATP status list
+  var atpStatus = ['No Need', 'passed', 'Progress', 'Work Not Start'];
+  for (var s = 0; s < atpStatus.length; s++) {
+    ws.getRange(8 + s, 8).setValue(atpStatus[s]);
+    
+    for (var z = 0; z < zones.length; z++) {
+      // COUNTIFS: Site_SUL!J = ZTE ZONE, Site_SUL!AQ = SM ATP (kolom ke-43)
+      ws.getRange(8 + s, 9 + z).setFormula(
+        '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$AQ:$AQ,"' + atpStatus[s] + '",Site_SUL!$B:$B,"<>")'
+      );
+    }
+  }
+  
+  // === Section 3: FI INEOM ===
+  ws.getRange('N4').setValue('PO Year');
+  ws.getRange('O4').setValue('2026');
+  ws.getRange('N6').setValue('Count of WID');
+  ws.getRange('N7').setValue('FI INEOM');
+  
+  for (var z = 0; z < zones.length; z++) {
+    ws.getRange(7, 15 + z).setValue(zones[z]);
+  }
+  ws.getRange(7, 15 + zones.length).setValue('Grand Total');
+  
+  // FI INEOM status
+  var ineomStatus = ['No Need', 'passed', 'Progress', 'Work Not Start'];
+  for (var s = 0; s < ineomStatus.length; s++) {
+    ws.getRange(8 + s, 14).setValue(ineomStatus[s]);
+    
+    for (var z = 0; z < zones.length; z++) {
+      // COUNTIFS: Site_SUL!J = ZTE ZONE, Site_SUL!AU = FI Ineom (kolom ke-47)
+      ws.getRange(8 + s, 15 + z).setFormula(
+        '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$AU:$AU,"' + ineomStatus[s] + '",Site_SUL!$B:$B,"<>")'
+      );
+    }
+  }
+  
+  // === Section 4: Connected Date ===
+  ws.getRange('AI4').setValue('PO Year');
+  ws.getRange('AJ4').setValue('2026');
+  ws.getRange('AI6').setValue('Count of WID');
+  ws.getRange('AI7').setValue('Connected Date');
+  
+  var connZones = ['TERNATE', 'MANADO', 'MAKASSAR'];
+  for (var z = 0; z < connZones.length; z++) {
+    ws.getRange(7, 36 + z).setValue(connZones[z]);
+  }
+  ws.getRange(7, 36 + connZones.length).setValue('Grand Total');
+  
+  // Connected per bulan
+  for (var m = 0; m < months.length; m++) {
+    ws.getRange(8 + m, 35).setValue(months[m]);
+    
+    for (var z = 0; z < connZones.length; z++) {
+      // COUNTIFS: Site_SUL!J = ZTE ZONE, Site_SUL!AR = Connected Date (kolom ke-44)
+      ws.getRange(8 + m, 36 + z).setFormula(
+        '=COUNTIFS(Site_SUL!$J:$J,"' + connZones[z] + '",Site_SUL!$AR:$AR,"<>",Site_SUL!$B:$B,"<>")'
+      );
+    }
+  }
+  
+  // === Summary Section ===
+  ws.getRange('B60').setValue('SUMMARY');
+  ws.getRange('B61').setValue('Total Site_SUL');
+  ws.getRange('C61').setFormula('=COUNTA(Site_SUL!$B:$B)-1');
+  ws.getRange('B62').setValue('Total Site_KAL');
+  ws.getRange('C62').setFormula('=COUNTA(Site_KAL!$C:$C)-1');
+  ws.getRange('B63').setValue('Total Site_Upgrade PLN');
+  ws.getRange('C63').setFormula('=COUNTA(Site_Upgrade PLN!$A:$A)-1');
+  ws.getRange('B64').setValue('Total Inbound');
+  ws.getRange('C64').setFormula('=COUNTA(Inbound!$C:$C)-1');
+}
+
+/**
+ * Manual trigger - Jalankan dari Script Editor
+ * Untuk test, jalankan: createAllFormulas()
+ */

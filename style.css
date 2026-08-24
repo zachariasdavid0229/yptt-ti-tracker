@@ -1048,6 +1048,16 @@ tr.group-row td {
   border: 1px solid var(--color-cyan);
   white-space: nowrap;
 }
+.badge-success {
+  background: rgba(0, 200, 83, .15);
+  color: #00c853;
+  border-color: #00c853;
+}
+.badge-error {
+  background: rgba(255, 82, 82, .15);
+  color: #ff5252;
+  border-color: #ff5252;
+}
 
 /* ---------- Buttons ---------- */
 .btn {
