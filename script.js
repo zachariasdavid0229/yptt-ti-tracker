@@ -1503,7 +1503,43 @@ function applyFreeze(tableEl, totalCols) {
 
 // Hitung ulang posisi freeze saat ukuran jendela berubah
 let _resizeT = null;
-window.addEventListener('resize', () => {
+
+
+/* COLLAPSIBLE SECTIONS */
+function toggleCollapsible(sectionId, header) {
+  var section = document.getElementById(sectionId);
+  var content = section.querySelector('.collapsible-content');
+  var icon = header.querySelector('.toggle-icon');
+  var isCollapsed = section.classList.contains('collapsed');
+
+  if (isCollapsed) {
+    section.classList.remove('collapsed');
+    content.style.maxHeight = content.scrollHeight + 'px';
+    icon.textContent = '\u25BC';
+  } else {
+    content.style.maxHeight = content.scrollHeight + 'px';
+    requestAnimationFrame(function() {
+      section.classList.add('collapsed');
+      content.style.maxHeight = '0';
+      icon.textContent = '\u25B6';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var sections = document.querySelectorAll('.collapsible-section');
+  sections.forEach(function(section) {
+    var content = section.querySelector('.collapsible-content');
+    var icon = section.querySelector('.collapsible-header .toggle-icon');
+    if (section.classList.contains('collapsed')) {
+      content.style.maxHeight = '0';
+      if (icon) icon.textContent = '\u25B6';
+    } else {
+      content.style.maxHeight = content.scrollHeight + 'px';
+      if (icon) icon.textContent = '\u25BC';
+    }
+  });
+});window.addEventListener('resize', () => {
   clearTimeout(_resizeT);
   _resizeT = setTimeout(() => {
     const key = activeSheetKey();

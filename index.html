@@ -125,22 +125,34 @@
       </div>
 
       <!-- ===== DASHBOARD 2026 (sheet asli) ===== -->
-      <div class="card collapsed">
-        <h2 onclick="toggleDashboardContent(this)">📋 Dashboard 2026 (sheet asli)</h2>
-        <div class="mini-stack" id="dash2026Table"></div>
+      <div class="collapsible-section collapsed" id="dashboard-section">
+        <div class="collapsible-header" onclick="toggleCollapsible('dashboard-section', this)">
+          <span class="toggle-icon">▶</span> Dashboard 2026 (sheet asli)
+        </div>
+        <div class="collapsible-content" id="dashboard-content">
+          <div class="mini-stack" id="dash2026Table"></div>
+        </div>
       </div>
 
       <!-- ===== PIVOT KALIMANTAN ===== -->
-      <div class="card collapsed">
-        <h2 onclick="toggleDashboardContent(this)">📋 Pivot Kalimantan</h2>
-        <div class="mini-stack" id="pivotKalTable"></div>
+      <div class="collapsible-section collapsed" id="pivot-kal-section">
+        <div class="collapsible-header" onclick="toggleCollapsible('pivot-kal-section', this)">
+          <span class="toggle-icon">▶</span> Pivot Kalimantan
+        </div>
+        <div class="collapsible-content" id="pivot-kal-content">
+          <div class="mini-stack" id="pivotKalTable"></div>
+        </div>
       </div>
 
       <!-- ===== LATEST DATA ===== -->
-      <div class="card collapsed">
-        <h2 onclick="toggleDashboardContent(this)">🆕 5 Data Terbaru</h2>
-        <div class="table-scroll">
-          <table id="latestTable" class="data-table dense"></table>
+      <div class="collapsible-section collapsed" id="latest-data-section">
+        <div class="collapsible-header" onclick="toggleCollapsible('latest-data-section', this)">
+          <span class="toggle-icon">▶</span> 5 Data Terbaru
+        </div>
+        <div class="collapsible-content" id="latest-data-content">
+          <div class="table-scroll">
+            <table id="latestTable" class="data-table dense"></table>
+          </div>
         </div>
       </div>
     </section>
