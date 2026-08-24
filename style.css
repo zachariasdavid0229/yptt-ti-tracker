@@ -829,6 +829,72 @@ tr.group-row td {
   border-top: 1px solid var(--color-dark-gray);
 }
 
+/* ---------- Toolbar Input & Select ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+}
+.toolbar label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--color-gray);
+  white-space: nowrap;
+}
+.input {
+  padding: 10px 14px;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  border: 1px solid var(--color-teal);
+  border-radius: var(--radius);
+  font-size: .87rem;
+  font-family: inherit;
+  outline: none;
+  min-width: 180px;
+  flex: 1;
+  transition: var(--transition);
+}
+.input:focus {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, .2);
+}
+.input::placeholder {
+  color: var(--color-gray);
+}
+.select {
+  padding: 10px 14px;
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+  border: 1px solid var(--color-teal);
+  border-radius: var(--radius);
+  font-size: .87rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.select:focus {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, .2);
+}
+.select option {
+  background: var(--color-dark-blue);
+  color: var(--color-white);
+}
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: rgba(0, 212, 255, .15);
+  color: var(--color-cyan);
+  border: 1px solid var(--color-cyan);
+  white-space: nowrap;
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   border: none;
@@ -936,6 +1002,7 @@ tr.group-row td {
 @media (max-width: 600px) {
   .app-header h1 { font-size: 1.05rem; }
   .tab-btn { padding: 12px 13px; font-size: .82rem; }
+  .toolbar { gap: 8px; }
   .toolbar label { display: none; }
   .input { min-width: 0; flex: 1; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
