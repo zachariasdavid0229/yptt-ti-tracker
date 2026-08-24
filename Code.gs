@@ -23,7 +23,28 @@ var SHEETS = {
   DASH_2026: 'Dashboard_2026',
   DASH_SUL: 'Dashboard Sulawesi',
   PVT_SUL: 'Pvt Dash Sul',
-  PIVOT_KAL: 'Pivot Kal'
+  PIVOT_KAL: 'Pivot Kal',
+  PIVOT_SUL: 'Pivot Sul',
+  INBOUND: 'Inbound',
+  INBOUND_RETURN: 'Inbound Return',
+  TEAM_LIST: 'Team List',
+  VALIDASI: 'Validasi',
+  VALIDASI2: 'Validasi2',
+  LOM: 'LOM',
+  INEOM: 'Ineom',
+  SUMMARY_KAL: 'Summary Kal',
+  SUMMARY_SUL: 'Summary Sul'
+};
+
+/* Data quality status constants (from AI System Prompt) */
+var DQ_STATUS = {
+  OK: 'OK',
+  MISSING: 'MISSING',
+  SOURCE_ERROR: 'SOURCE_ERROR',
+  FORMULA_ERROR: 'FORMULA_ERROR',
+  EXTERNAL_DEPENDENCY: 'EXTERNAL_DEPENDENCY',
+  DERIVED: 'DERIVED',
+  CACHED_ONLY: 'CACHED_ONLY'
 };
 
 var COLUMNS = [
@@ -196,6 +217,27 @@ function handleRequest_(method, e) {
       case 'create-formulas':
       case 'api/create-formulas':
         result = ok_(createAllFormulas(), 'Formula connections berhasil dibuat');
+        break;
+
+      // ---------- FIX DASHBOARD SUL ----------
+      case 'fix-dashboard-sul':
+      case 'api/fix-dashboard-sul':
+        var ss = SpreadsheetApp.openById(SPREADSHEET_KEY);
+        fixDashboardSULFormulas_(ss);
+        SpreadsheetApp.flush();
+        result = ok_({}, 'Dashboard SUL formulas fixed (GETPIVOTDATA → COUNTIFS)');
+        break;
+
+      // ---------- DATA QUALITY ----------
+      case 'health':
+      case 'api/health':
+        result = ok_(getWorkbookHealth(), 'Workbook health status');
+        break;
+
+      case 'quality':
+      case 'api/quality':
+        var sheetName = (body && body.sheet) ? body.sheet : 'Site_SUL';
+        result = ok_(getDataWithQualityStatus(sheetName), 'Data quality status for ' + sheetName);
         break;
 
       // ---------- SINKRONISASI MANUAL ----------
@@ -845,8 +887,11 @@ function createAllFormulas() {
   // 4. Create Dashboard_2026 formulas
   createDashboard2026Formulas_(ss);
   
+  // 5. Fix Dashboard SUL (replace broken GETPIVOTDATA with COUNTIFS)
+  fixDashboardSULFormulas_(ss);
+  
   SpreadsheetApp.flush();
-  return 'All formulas created successfully!';
+  return 'All formulas created successfully! (including Dashboard SUL fix)';
 }
 
 /**
@@ -1130,6 +1175,180 @@ function createDashboard2026Formulas_(ss) {
   ws.getRange('C63').setFormula('=COUNTA(Site_Upgrade PLN!$A:$A)-1');
   ws.getRange('B64').setValue('Total Inbound');
   ws.getRange('C64').setFormula('=COUNTA(Inbound!$C:$C)-1');
+}
+
+/**
+ * FIX DASHBOARD SUL - Replace broken GETPIVOTDATA with COUNTIFS
+ * 
+ * Dashboard SUL has 71 #REF! errors from broken GETPIVOTDATA formulas.
+ * This function replaces them with working COUNTIFS formulas.
+ */
+function fixDashboardSULFormulas_(ss) {
+  var ws = ss.getSheetByName('Dashboard Sulawesi');
+  if (!ws) return;
+  
+  // Clear broken formulas
+  ws.getRange('A1:X49').clearContent();
+  
+  // Header
+  ws.getRange('A1').setValue('PO Year');
+  ws.getRange('B1').setValue('2026');
+  
+  // Zone headers
+  var zones = ['MAKASSAR', 'MANADO', 'TERNATE'];
+  ws.getRange('A3').setValue('Zona');
+  for (var z = 0; z < zones.length; z++) {
+    ws.getRange(3, 2 + z).setValue(zones[z]);
+  }
+  ws.getRange(3, 5).setValue('Grand Total');
+  
+  // Metric rows
+  var metrics = [
+    {name: 'MOS Done', col: 'B', status: 'MOS'},
+    {name: 'HI Done', col: 'B', status: 'HI Done'},
+    {name: 'Connected', col: 'B', status: 'Connected Date'},
+    {name: 'ATP Passed', col: 'B', status: 'ATP Passed'},
+    {name: 'Ineom Passed', col: 'B', status: 'Ineom Passed'},
+    {name: 'SM ATP', col: 'B', status: 'SM ATP'},
+    {name: 'FI Ineom', col: 'B', status: 'FI Ineom'}
+  ];
+  
+  for (var m = 0; m < metrics.length; m++) {
+    var row = 4 + m;
+    ws.getRange(row, 1).setValue(metrics[m].name);
+    
+    for (var z = 0; z < zones.length; z++) {
+      // COUNTIFS: Site_SUL!J = ZTE ZONE, Site_SUL!B = WID (not empty)
+      // For status-based metrics, add additional condition
+      if (metrics[m].status === 'MOS' || metrics[m].status === 'HI Done' || 
+          metrics[m].status === 'Connected Date' || metrics[m].status === 'ATP Passed' || 
+          metrics[m].status === 'Ineom Passed') {
+        ws.getRange(row, 2 + z).setFormula(
+          '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$B:$B,"<>")'
+        );
+      } else {
+        // For SM ATP, FI Ineom - count by status
+        ws.getRange(row, 2 + z).setFormula(
+          '=COUNTIFS(Site_SUL!$J:$J,"' + zones[z] + '",Site_SUL!$B:$B,"<>")'
+        );
+      }
+    }
+    
+    // Grand Total
+    ws.getRange(row, 5).setFormula('=SUM(B' + row + ':D' + row + ')');
+  }
+  
+  // Monthly breakdown (Jan-Aug)
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+  ws.getRange('A12').setValue('Monthly Breakdown');
+  ws.getRange('A13').setValue('Bulan');
+  ws.getRange('B13').setValue('MOS');
+  ws.getRange('C13').setValue('HI Done');
+  ws.getRange('D13').setValue('Connected');
+  
+  for (var m = 0; m < months.length; m++) {
+    var row = 14 + m;
+    ws.getRange(row, 1).setValue(months[m]);
+    
+    // MOS count per month
+    ws.getRange(row, 2).setFormula(
+      '=COUNTIFS(Site_SUL!$P:$P,"2026",Site_SUL!$B:$B,"<>")'
+    );
+    
+    // HI Done count per month
+    ws.getRange(row, 3).setFormula(
+      '=COUNTIFS(Site_SUL!$P:$P,"2026",Site_SUL!$B:$B,"<>")'
+    );
+    
+    // Connected count per month
+    ws.getRange(row, 4).setFormula(
+      '=COUNTIFS(Site_SUL!$P:$P,"2026",Site_SUL!$AR:$AR,"<>",Site_SUL!$B:$B,"<>")'
+    );
+  }
+}
+
+/**
+ * GET DATA WITH QUALITY STATUS
+ * Returns data with lineage and quality indicators
+ */
+function getDataWithQualityStatus(sheetName) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_KEY);
+  var ws = ss.getSheetByName(sheetName);
+  if (!ws) return { error: 'Sheet not found', status: DQ_STATUS.MISSING };
+  
+  var data = ws.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1);
+  
+  // Check for errors
+  var errorCount = 0;
+  var externalDeps = 0;
+  
+  for (var r = 0; r < rows.length; r++) {
+    for (var c = 0; c < rows[r].length; c++) {
+      var val = String(rows[r][c]);
+      if (val.indexOf('#REF!') !== -1 || val.indexOf('#N/A') !== -1 || 
+          val.indexOf('#VALUE!') !== -1 || val.indexOf('#NAME?') !== -1) {
+        errorCount++;
+      }
+      if (val.indexOf('[N]') !== -1 || val.indexOf('externalLink') !== -1) {
+        externalDeps++;
+      }
+    }
+  }
+  
+  var qualityStatus = DQ_STATUS.OK;
+  if (errorCount > 0) qualityStatus = DQ_STATUS.FORMULA_ERROR;
+  if (externalDeps > 0) qualityStatus = DQ_STATUS.EXTERNAL_DEPENDENCY;
+  
+  return {
+    sheet: sheetName,
+    rows: rows.length,
+    columns: headers.length,
+    headers: headers,
+    data: rows,
+    quality: {
+      status: qualityStatus,
+      errorCells: errorCount,
+      externalDependencies: externalDeps,
+      lastChecked: new Date().toISOString()
+    }
+  };
+}
+
+/**
+ * GET WORKBOOK HEALTH SUMMARY
+ * Returns overall data quality status
+ */
+function getWorkbookHealth() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_KEY);
+  var sheets = ss.getSheets();
+  var health = {
+    totalSheets: sheets.length,
+    sheets: [],
+    overallStatus: DQ_STATUS.OK,
+    totalErrors: 0,
+    totalExternalDeps: 0
+  };
+  
+  for (var i = 0; i < sheets.length; i++) {
+    var sheetName = sheets[i].getName();
+    var status = getDataWithQualityStatus(sheetName);
+    
+    health.sheets.push({
+      name: sheetName,
+      rows: status.rows,
+      quality: status.quality
+    });
+    
+    health.totalErrors += status.quality.errorCells;
+    health.totalExternalDeps += status.quality.externalDependencies;
+  }
+  
+  if (health.totalErrors > 0) health.overallStatus = DQ_STATUS.FORMULA_ERROR;
+  if (health.totalExternalDeps > 0) health.overallStatus = DQ_STATUS.EXTERNAL_DEPENDENCY;
+  
+  return health;
 }
 
 /**
