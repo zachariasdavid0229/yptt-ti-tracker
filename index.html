@@ -124,38 +124,45 @@
         <div class="mini-stack" id="dashSulTable"></div>
       </div>
 
+      <!-- ===== REKONSILIASI MANUAL vs ENGINE (parallel run) ===== -->
+      <div class="collapsible-section collapsed" id="recon-section">
+        <div class="collapsible-header" onclick="toggleCollapsible('recon-section', this)">
+          <span class="toggle-icon">▶</span> ⚖️ Rekonsiliasi Manual vs Engine
+        </div>
+        <div class="collapsible-content" id="recon-content">
+          <div class="toolbar">
+            <button class="btn btn-secondary" onclick="loadReconciliation()">Muat / Segarkan Perbandingan</button>
+            <span id="reconStatus" class="badge"></span>
+          </div>
+          <p style="margin:6px 0 10px;font-size:.8rem;color:var(--text-muted);">
+            Delta &ne; 0 <b>belum tentu engine salah</b>. Klik baris ber-delta untuk menelusuri WID
+            penyusunnya (lineage), lalu klasifikasikan: cache Excel lama salah · data berubah ·
+            hitungan lama terlalu longgar · tanggal invalid · definisi bisnis berbeda.
+          </p>
+          <div id="reconTables"></div>
+        </div>
+      </div>
+
       <!-- ===== ADMIN TOOLS ===== -->
       <div class="card" id="adminToolsCard" style="margin-bottom: 16px;">
         <h2>🛠️ Admin Tools</h2>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <button class="btn btn-secondary" id="btnCreateFormulas" onclick="createFormulas()">
-            Buat Formula Hubungan Sheet
-          </button>
-          <span id="formulaStatus" class="badge" style="display: none;"></span>
-        </div>
-        <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-muted);">
-          Membuat formula COUNTIFS untuk menghubungkan data antar sheet (Pivot Sul, Pivot Kal, Dashboard).
+        <p style="margin: 4px 0 10px; font-size: 0.85rem; color: var(--text-muted);">
+          Tombol <em>"Buat Formula Hubungan Sheet"</em> DINONAKTIFKAN (writer lama terbukti
+          merusak layout dashboard &mdash; lihat PROJECT_AUDIT.md K1). Gantinya, calculation engine
+          menulis hasil ke sheet <code>ENGINE *</code> tanpa menyentuh sheet manual/RAW.
         </p>
-      </div>
-
-      <!-- ===== DASHBOARD 2026 (sheet asli) ===== -->
-      <div class="collapsible-section collapsed" id="dashboard-section">
-        <div class="collapsible-header" onclick="toggleCollapsible('dashboard-section', this)">
-          <span class="toggle-icon">▶</span> Dashboard 2026 (sheet asli)
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <input type="password" id="authTokenInput" class="input" placeholder="Token (OPERATOR/ADMIN)"
+            style="max-width: 240px;" autocomplete="off">
+          <button class="btn btn-secondary" onclick="saveToken()">Cek / Simpan Token</button>
+          <button class="btn btn-primary" onclick="runEngineSync()">Jalankan Engine</button>
+          <span id="authStatus" class="badge"></span>
+          <span id="engineStatus" class="badge"></span>
         </div>
-        <div class="collapsible-content" id="dashboard-content">
-          <div class="mini-stack" id="dash2026Table"></div>
-        </div>
-      </div>
-
-      <!-- ===== PIVOT KALIMANTAN ===== -->
-      <div class="collapsible-section collapsed" id="pivot-kal-section">
-        <div class="collapsible-header" onclick="toggleCollapsible('pivot-kal-section', this)">
-          <span class="toggle-icon">▶</span> Pivot Kalimantan
-        </div>
-        <div class="collapsible-content" id="pivot-kal-content">
-          <div class="mini-stack" id="pivotKalTable"></div>
-        </div>
+        <p style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted);">
+          Role: VIEWER = baca · OPERATOR = edit RAW · ADMIN = jalankan engine. Token diset admin
+          di Script Properties (<code>YPTT_TOKEN_*</code>).
+        </p>
       </div>
 
       <!-- ===== LATEST DATA ===== -->
@@ -221,6 +228,7 @@
           <option value="dash-sul">Dashboard Sulawesi</option>
         </select>
         <h2 id="pivotTitle" style="margin:0;font-size:1rem;">Pivot SUL</h2>
+        <span id="pivotSource" class="badge" style="font-size:.7rem;"></span>
       </div>
       <div class="toolbar">
         <input type="text" id="search-pvt-dash-sul" class="input" placeholder="Cari...">
@@ -280,6 +288,6 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-  <script src="script.js?v=20260825" defer></script>
+  <script src="script.js?v=20260825l" defer></script>
 </body>
 </html>

@@ -1,6 +1,62 @@
 /* ============ YPTT TI Tracker - Script ============ */
 
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbwKYa_TT_jQogEBSMD0wFrZ0drMbfAs_2vnInu2h-GEBOmkUEST1GCRM8uuG1Q51k6W/exec';
+/* ==================== Backend API Resolver ====================
+ * FIX (audit M1): URL backend tunggal rawan salah deployment.
+ * Kandidat dicoba via health check; yang hidup dipakai & disimpan.
+ * Urutan kandidat: URL terakhir tercatat di CATATAN-LANJUTAN.md,
+ * lalu URL legacy pada kode lama.
+ */
+const API_URL_CANDIDATES = [
+  /* Deployment aktif 25 Agu 2026 — v3.0.7-final.1 (FINAL MIGRATION, Pivot lock aktif) */
+  'https://script.google.com/macros/s/AKfycbyrYYoWJbP180oZ4LROGa4eu1qx_aIlQuh9_Cn26zfOSe0Zn-Kkkle1Niv2uZKsFm-g/exec',
+  /* v3.0.4-contract.5 (fallback) */
+  'https://script.google.com/macros/s/AKfycbxI8-jSA_83r-v3-fC2ICqyssLEBNv0U5Ln1S4wwsNiFht25xKyLUYl7HmlkFJHps0o/exec',
+  'https://script.google.com/macros/s/AKfycbzUiTE_OKeO-f9l1QNTVzlaK83MXzRWifXPeg6gVgezAvDB9U7VqXrEo0i7etlX5MEe/exec',
+  'https://script.google.com/macros/s/AKfycbxFV-vxshY2bSTKASvNaYP7ueBY6nL4_Em_xGUhIs4dAFwCqukNCSBeIN2jo59kR2es/exec',
+  'https://script.google.com/macros/s/AKfycbx-bxknH5nO9V3N1FmdLYQ9DU-LCSFH53AOZLkTqklO6-l2hGUdYgy0YWLKTZYnOJ7G/exec',
+  'https://script.google.com/macros/s/AKfycbyMFXVcUZtsUDdchmscpgmBtvgMCN-66kP5iMjBnJwJ1aNeZ1kxGRKi-oMzAYW27PXs/exec',
+  'https://script.google.com/macros/s/AKfycbwKYa_TT_jQogEBSMD0wFrZ0drMbfAs_2vnInu2h-GEBOmkUEST1GCRM8uuG1Q51k6W/exec'
+];
+
+let API_BASE_URL = (() => {
+  try { return localStorage.getItem('yptt_api_url') || API_URL_CANDIDATES[0]; }
+  catch (e) { return API_URL_CANDIDATES[0]; }
+})();
+
+/** Token otorisasi (VIEWER/OPERATOR/ADMIN) — diset via panel Admin Tools */
+function getToken() {
+  try { return localStorage.getItem('yptt_token') || ''; } catch (e) { return ''; }
+}
+
+/**
+ * Probe kandidat berurutan (kandidat terbaru selalu DICOBA DULU sehingga
+ * deployment baru otomatis mengambil alih dari URL lama yang tersimpan
+ * di localStorage). Yang hidup dipakai & disimpan untuk debug/diplay.
+ */
+async function resolveApiBaseUrl(force) {
+  const saved = (() => { try { return localStorage.getItem('yptt_api_url') || ''; } catch (e) { return ''; } })();
+  // Urutan probe: kandidat[0] dulu, lalu sisanya; URL tersimpan hanya prioritas
+  // kalau ia bukan kandidat[0] tapi masih hidup dan kandidat[0] mati.
+  let order = API_URL_CANDIDATES.slice();
+  if (saved && saved !== API_URL_CANDIDATES[0] && API_URL_CANDIDATES.includes(saved)) {
+    order = [API_URL_CANDIDATES[0], saved].concat(
+      API_URL_CANDIDATES.filter(u => u !== API_URL_CANDIDATES[0] && u !== saved));
+  }
+  for (const url of order) {
+    try {
+      const res = await fetch(url + '?action=health', { redirect: 'follow' });
+      const j = await res.json();
+      if (j && j.success) {
+        API_BASE_URL = url;
+        try { localStorage.setItem('yptt_api_url', url); } catch (e) {}
+        console.info('[YPTT] Backend aktif:', url, 'v' + (j.data && j.data.backendVersion));
+        return url;
+      }
+    } catch (e) { /* kandidat mati, lanjut */ }
+  }
+  console.warn('[YPTT] Semua kandidat backend gagal — memakai', API_BASE_URL);
+  return API_BASE_URL;
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ZONE_COLORS = ['#2d6bb8', '#00b4d8', '#4a90d9', '#0077b6', '#8899aa'];
@@ -194,12 +250,13 @@ async function apiCall(action, payload = {}) {
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action: action }, payload)),
+      body: JSON.stringify(Object.assign({ action: action, token: getToken() }, payload)),
       redirect: 'follow'
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     if (!json.success) throw new Error(json.error || json.message || 'Unknown error');
+    if (json.data && json.data.dataVersion !== undefined) setDataVersion(json.data.dataVersion);
     return json;
   } catch (err) {
     showToast('Gagal: ' + err.message, 'error');
@@ -207,6 +264,28 @@ async function apiCall(action, payload = {}) {
   } finally {
     showLoading(false);
   }
+}
+
+/* ==================== Data Version (spec V2 §20-21) ====================
+ * Cache tidak lagi bergantung TTL buta: backend mengirim dataVersion.
+ * Jika versi berubah (ada edit RAW / engine sync), seluruh cache lokal
+ * dibuang agar website tidak menampilkan data basi.
+ */
+let DATA_VERSION = null;
+
+function setDataVersion(v) {
+  v = Number(v);
+  if (!v || isNaN(v)) return;
+  if (DATA_VERSION !== null && v !== DATA_VERSION) purgeAllAppCache();
+  DATA_VERSION = v;
+}
+
+function purgeAllAppCache() {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.indexOf('yptt_v1_') === 0)
+      .forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
 }
 
 /* ==================== Cache localStorage (TTL 5 menit) ==================== */
@@ -220,6 +299,11 @@ function cacheGet(name) {
     const raw = localStorage.getItem(cacheKey(name));
     if (!raw) return null;
     const obj = JSON.parse(raw);
+    // Version-aware invalidation: cache dari versi data lama dibuang
+    if (obj.v && DATA_VERSION !== null && obj.v !== DATA_VERSION) {
+      localStorage.removeItem(cacheKey(name));
+      return null;
+    }
     return { data: obj.data, stale: (Date.now() - obj.t) > CACHE_TTL };
   } catch (e) { return null; }
 }
@@ -227,19 +311,36 @@ function cacheGet(name) {
 function cacheSet(name, data) {
   try {
     try {
-      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
+      localStorage.setItem(cacheKey(name),
+        JSON.stringify({ t: Date.now(), v: DATA_VERSION, data: data }));
     } catch (quotaErr) {
       // Kuota penuh: bersihkan cache aplikasi lalu coba sekali lagi
-      Object.keys(localStorage)
-        .filter(k => k.indexOf('yptt_v1_') === 0)
-        .forEach(k => localStorage.removeItem(k));
-      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
+      purgeAllAppCache();
+      localStorage.setItem(cacheKey(name),
+        JSON.stringify({ t: Date.now(), v: DATA_VERSION, data: data }));
     }
   } catch (e) { /* kuota tetap tidak cukup - lewati caching */ }
 }
 
 function cacheDel(name) {
   try { localStorage.removeItem(cacheKey(name)); } catch (e) {}
+}
+
+/**
+ * Invalidasi cache pasca-tulis (fix audit M2):
+ * selain sheet target, bundle dashboard & salinan site juga dibuang
+ * agar KPI/grafik tidak menampilkan data lama sampai TTL habis.
+ */
+function invalidateAfterWrite(sheetKey) {
+  cacheDel('sheet:' + sheetKey);
+  if (PIVOT_KEYS.includes(sheetKey)) {
+    PIVOT_KEYS.forEach(k => cacheDel('sheet:' + k));
+  }
+  if (sheetKey === 'site-sul' || sheetKey === 'site-kal' || PIVOT_KEYS.includes(sheetKey)) {
+    cacheDel('dashboard');
+    cacheDel('sheet-site-sul');
+    cacheDel('sheet-site-kal');
+  }
 }
 
 function setLoadingText(t) {
@@ -263,6 +364,131 @@ function showToast(msg, type = 'success') {
   toast.className = 'toast ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+}
+
+/* ==================== DATA CONTRACT LAYER ====================
+ * Normalizer + validator tunggal antara API dan renderer (spec fix §2-§8).
+ * Renderer TIDAK boleh tahu sumber data; semua payload melewati
+ * normalizeTableData()/assertTableData() agar tidak ada cell
+ * undefined / [object Object] / NaN / error-object yang dirender.
+ */
+
+const YPTT_DEBUG = (() => {
+  try {
+    if (new URLSearchParams(location.search).has('debug')) {
+      localStorage.setItem('yptt_debug', '1');
+    }
+    return localStorage.getItem('yptt_debug') === '1';
+  } catch (e) { return false; }
+})();
+
+function dbgLog(title, info) {
+  if (!YPTT_DEBUG) return;
+  console.groupCollapsed('%c[YPTT DEBUG] ' + title, 'color:#00b4d8;font-weight:bold;');
+  Object.keys(info || {}).forEach(k => console.log(k + ':', info[k]));
+  console.groupEnd();
+}
+
+/** Sel aman untuk render: undefined/null/NaN/[object Object] -> '' */
+function safeCell(v) {
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'number') return isNaN(v) ? '' : v;
+  const s = String(v);
+  if (/^\[object /.test(s)) return '';
+  if (s === 'NaN' || s === 'undefined' || s === 'null') return '';
+  // TAMBAHAN: deteksi nilai error spreadsheet
+  if (/#ERROR|#REF!|#VALUE!|#DIV/0!|#NAME?/.test(s)) return '';
+  return v;
+}
+
+/**
+ * Normalisasi SEMUA bentuk tabel ke {headers:[], rows:[[]], meta:{}}:
+ * A) {headers, rows}  B) {rows} tanpa headers  C) array of objects
+ * D) payload error {error} -> ditandai, bukan dirender sebagai cell.
+ */
+function normalizeTableData(data, label) {
+  const out = { headers: [], rows: [], label: label || '', sourceError: null, empty: true };
+
+  if (data === null || data === undefined) return out;
+
+  // D) payload berbentuk error
+  if (!Array.isArray(data) && typeof data === 'object' && data.error) {
+    out.sourceError = String(data.error);
+    return out;
+  }
+
+  // C) array of objects
+  if (Array.isArray(data)) {
+    if (!data.length) return out;
+    const headerSet = [];
+    data.forEach(r => {
+      Object.keys(r || {}).forEach(k => {
+        if (k !== 'rowIndex' && headerSet.indexOf(k) === -1) headerSet.push(k);
+      });
+    });
+    out.headers = headerSet;
+    out.rows = data.map(r => headerSet.map(h => safeCell(r[h])));
+    out.empty = false;
+    return out;
+  }
+
+  if (typeof data !== 'object') return out;
+
+  // A/B) {headers?, rows}
+  if (Array.isArray(data.headers)) {
+    out.headers = data.headers.map(h => String(h === undefined || h === null ? '' : h));
+  }
+  if (Array.isArray(data.rows)) {
+    out.rows = data.rows.map(r => {
+      if (Array.isArray(r)) return r.map(c => safeCell(c));
+      if (r && typeof r === 'object') {
+        const keys = out.headers.length ? out.headers : Object.keys(r);
+        if (!out.headers.length) out.headers = keys.filter(k => k !== 'rowIndex');
+        return out.headers.map(h => safeCell(r[h]));
+      }
+      return [safeCell(r)];
+    });
+  }
+  // Jika headers kosong tapi rows ada → deteksi dari baris pertama (legacy)
+  if (!out.headers.length && out.rows.length) {
+    const w = Math.max(...out.rows.map(r => r.length));
+    out.headers = Array.from({ length: w }, (_, i) => 'Kolom ' + (i + 1));
+  }
+  out.empty = !out.rows.length;
+  return out;
+}
+
+/** Validasi terakhir sebelum render; mengganti bentuk ilegal dengan aman. */
+function assertTableData(tbl) {
+  if (!tbl || typeof tbl !== 'object') tbl = { headers: [], rows: [] };
+  if (!Array.isArray(tbl.headers)) tbl.headers = [];
+  if (!Array.isArray(tbl.rows)) tbl.rows = [];
+  tbl.headers = tbl.headers.map(h => String(h === undefined || h === null ? '' : h));
+  tbl.rows = tbl.rows.map(r => Array.isArray(r) ? r.map(c => safeCell(c)) : [safeCell(r)]);
+  return tbl;
+}
+
+/**
+ * Bentuk baku response dashboard: kpi + tiga tabel legacy + blok engine,
+ * semuanya sudah ternormalisasi. Frontend selanjutnya hanya melihat bentuk ini.
+ */
+function normalizeDashboardResponse(d) {
+  d = d || {};
+  const engineRaw = d.engine || {};
+  return {
+    kpi: d.kpi || null,
+    dataVersion: d.dataVersion,
+    dashboard_2026: normalizeTableData(d.dashboard_2026, 'Dashboard_2026'),
+    dashboard_sulawesi: normalizeTableData(d.dashboard_sulawesi, 'Dashboard Sulawesi (manual)'),
+    pivot_kal: normalizeTableData(d.pivot_kal, 'Pivot Kal (manual)'),
+    engine: {
+      available: !!engineRaw.available,
+      pvt_dash_sul: normalizeTableData(engineRaw.pvt_dash_sul, 'ENGINE Pvt Dash Sul'),
+      pivot_kal: normalizeTableData(engineRaw.pivot_kal, 'ENGINE Pivot Kal'),
+      dash_sulawesi: normalizeTableData(engineRaw.dash_sulawesi, 'ENGINE Dashboard Sulawesi'),
+      summary_sul: normalizeTableData(engineRaw.summary_sul, 'ENGINE Summary Sul')
+    }
+  };
 }
 
 /* ==================== Tab Navigation ==================== */
@@ -331,9 +557,17 @@ const DASH_DEFS = [
 
 function applyDashPiece(name, data) {
   if (name === 'dashboard') {
-    state.dashboard = data;
+    // Kontrak tunggal: semua konsumen menerima bentuk ternormalisasi
+    state.dashboard = normalizeDashboardResponse(data);
+    dbgLog('dashboard normalized', {
+      backendDataVersion: state.dashboard.dataVersion,
+      engineAvailable: state.dashboard.engine.available,
+      dashSulawesi: state.dashboard.dashboard_sulawesi.rows.length + ' rows / ' + state.dashboard.dashboard_sulawesi.headers.length + ' cols',
+      enginePivotKal: state.dashboard.engine.pivot_kal.rows.length + ' rows',
+      engineDashSulawesi: state.dashboard.engine.dash_sulawesi.rows.length + ' rows'
+    });
     // KPI disertakan dalam response dashboard (R5: batch API)
-    if (data && data.kpi) state.kpi = data.kpi;
+    if (state.dashboard.kpi) { state.kpi = state.dashboard.kpi; setDataVersion(state.dashboard.kpi.dataVersion); }
   }
   else if (name === 'sheet-site-sul') state.sheets['site-sul'] = data || [];
   else if (name === 'sheet-site-kal') state.sheets['site-kal'] = data || [];
@@ -358,10 +592,43 @@ function renderDashboardStage2() {
   }, 0);
 }
 // Tahap 3: tabel + hitung ulang issue
+function pickDerived(engTbl, legTbl) {
+  // Prioritas WAJIB (spec fix §3/§8): ENGINE > manual legacy > empty-state.
+  if (engTbl && !engTbl.empty) return { tbl: engTbl, source: engTbl.label || 'ENGINE' };
+  if (legTbl && !legTbl.empty) return { tbl: legTbl, source: legTbl.label || 'LEGACY' };
+  return {
+    tbl: null,
+    source: (engTbl ? engTbl.label : '') ,
+    emptyMessage: (engTbl && engTbl.label)
+      ? 'ENGINE belum dibuat — jalankan Engine dari Admin Tools'
+      : 'Data belum tersedia'
+  };
+}
+
 function renderDashboardStage3() {
-  renderMiniTable('dash2026Table', state.dashboard && state.dashboard.dashboard_2026);
-  renderMiniTable('dashSulTable', state.dashboard && state.dashboard.dashboard_sulawesi);
-  renderMiniTable('pivotKalTable', state.dashboard && state.dashboard.pivot_kal);
+  const d = state.dashboard;
+  if (d) {
+    const e = d.engine;
+
+    const pvtPick = pickDerived(e.pvt_dash_sul, null); // chart sumber utama
+
+    const dashSulPick = pickDerived(e.dash_sulawesi, d.dashboard_sulawesi);
+    const kalPick = pickDerived(e.pivot_kal, d.pivot_kal);
+
+    dbgLog('stage3 source resolution', {
+      dashSulawesi: dashSulPick.source,
+      pivotKal: kalPick.source,
+      pvtForChart: pvtPick.source
+    });
+
+    // Simpan sumber untuk ditampilkan bila diperlukan
+    d._sources = { dashSulawesi: dashSulPick.source, pivotKal: kalPick.source };
+
+    const dashSulView = dashSulPick.tbl || { headers: [], rows: [], emptyMessage: dashSulPick.emptyMessage };
+    const kalView = kalPick.tbl || { headers: [], rows: [], emptyMessage: kalPick.emptyMessage };
+
+    renderMiniTable('dashSulTable', dashSulView);
+  }
   renderLatestTable();
   renderHeaderStats();
 }
@@ -404,6 +671,7 @@ async function doLoadDashboard(force) {
         const res = await fetch(API_BASE_URL + '?' + d.qs, { redirect: 'follow' });
         const j = await res.json();
         if (!j.success) throw new Error(j.error || 'gagal memuat');
+        if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
         cacheSet(d.name, j.data);
         values[d.name] = j.data;
         applyDashPiece(d.name, j.data);
@@ -445,14 +713,40 @@ function pctOf(part, total) {
 }
 
 /**
- * Cek apakah nilai menandakan "selesai".
- * SYNC: Logika harus identik dengan isDone_() di Code.gs.
+ * Status semantik frontend — MIRROR dari classifyStatus_/parseDateLoose_ Code.gs.
+ * DONE hanya bila status termasuk passed-set ATAU nilainya tanggal valid.
+ * "Progress"/"Work Not Start"/"No Need" BUKAN done (fix audit K3).
  */
+const STATUS_DONE_SET = ['passed', 'done', 'done tagging', 'approved', 'released'];
+const STATUS_NEGATIVE_SET = ['work not start', 'not started', 'pending', 'ny', 'ny sm',
+  'belum', 'progress', 'in progress', 'on progress', 'ongoing', 'no need', '-', 'n/a', 'na'];
+
+function normStatusJs(v) {
+  return String(v === undefined || v === null ? '' : v)
+    .toLowerCase().replace(/\s+/g, ' ').trim().replace(/^\d+\s*[-.]?\s*/, '');
+}
+
+function parseDateLooseJs(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') {
+    return (v > 20000 && v < 60000) ? new Date(Math.round((v - 25569) * 86400000)) : null;
+  }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function isDoneVal(v) {
-  const s = String(v === undefined || v === null ? '' : v).trim().toUpperCase();
-  if (s === '' || s === '-' || s === 'N' || s === 'NO' || s === 'FALSE' || s === 'NULL') return false;
-  if (s.indexOf('PENDING') !== -1 || s.indexOf('BELUM') !== -1) return false;
-  return true;
+  const raw = String(v === undefined || v === null ? '' : v).trim();
+  if (!raw) return false;
+  const s = normStatusJs(raw);
+  if (STATUS_DONE_SET.includes(s)) return true;
+  if (STATUS_NEGATIVE_SET.includes(s)) return false;
+  return parseDateLooseJs(raw) !== null; // tanggal valid = milestone tercapai
 }
 
 function countIssues() {
@@ -883,14 +1177,14 @@ async function loadSheet(sheetKey, force = false) {
   try {
     let j;
     if (c.api === 'pivot') {
-      const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
-        encodeURIComponent(c.sheetName), { redirect: 'follow' });
-      j = await res.json();
+      // Resolver ENGINE > legacy (spec fix §4/§9)
+      j = { success: true, data: await loadDerivedTable(sheetKey) };
     } else {
       const res = await fetch(API_BASE_URL + '?action=' + c.api, { redirect: 'follow' });
       j = await res.json();
     }
     if (!j.success) throw new Error(j.error || 'gagal memuat');
+    if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
     cacheSet(ck, j.data);
     state.sheets[sheetKey] = j.data || [];
     renderCrudTable(sheetKey);
@@ -916,6 +1210,50 @@ function switchPivot(key) {
   } else {
     loadSheet(key);
   }
+}
+
+/* ==================== DERIVED TABLE RESOLVER (spec fix §4/§9) ====================
+ * Tab Pivot & tabel turunan memakai resolver yang sama:
+ *   1) ENGINE <Nama>   (output calculation engine)
+ *   2) <Nama> legacy   (input manual — parallel run)
+ *   3) keduanya kosong -> empty-state jelas, tanpa undefined/#ERROR/NaN
+ */
+const DERIVED_SHEET_KEYS = { 'pvt-dash-sul': 'Pvt Dash Sul', 'pivot-kal': 'Pivot Kal', 'dash-sul': 'Dashboard Sulawesi' };
+
+async function fetchPivotByName(name) {
+  try {
+    const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
+      encodeURIComponent(name), { redirect: 'follow' });
+    const j = await res.json();
+    if (!j.success) return null;
+    return Array.isArray(j.data) ? j.data : [];
+  } catch (e) { return null; }
+}
+
+function updatePivotSourceBadge(source) {
+  const el = document.getElementById('pivotSource');
+  if (el) el.textContent = source ? ('sumber: ' + source) : 'sumber: Data belum tersedia';
+}
+
+/** Resolver tunggal untuk semua tabel derived pada UI. */
+async function loadDerivedTable(key) {
+  const legacy = cfg(key).sheetName || DERIVED_SHEET_KEYS[key];
+  let source = null;
+  let data = [];
+
+  const eng = await fetchPivotByName('ENGINE ' + legacy);
+  if (eng && eng.length) {
+    data = eng; source = 'ENGINE ' + legacy;
+  } else {
+    const leg = await fetchPivotByName(legacy);
+    if (leg && leg.length) { data = leg; source = 'LEGACY ' + legacy; }
+  }
+
+  state.derivedSource = state.derivedSource || {};
+  state.derivedSource[key] = source;
+  dbgLog('loadDerivedTable ' + key, { resolvedSource: source, rows: data.length });
+  updatePivotSourceBadge(source);
+  return data;
 }
 
 /* ==================== Dashboard ==================== */
@@ -1069,12 +1407,15 @@ function getCtx(id) {
 }
 
 function renderMosChart() {
-  // Prioritas 1: tabel input reguler format panjang (Pvt Dash Sul baru)
-  // Prioritas 2: blok pivot lama 'Assignment x Zona'
-  // Prioritas 3: fallback layout [MONTH | zona | TOTAL]
+  // Prioritas 1: hasil ENGINE sheet (auto-update dari RAW, safe mode)
+  // Prioritas 2: tabel input manual format panjang (Pvt Dash Sul)
+  // Prioritas 3: blok pivot lama 'Assignment x Zona'
+  // Prioritas 4: fallback layout [MONTH | zona | TOTAL]
   let labels, chartDatasets;
 
-  const longFmt = tryLongFormatPvt(state.dashboard && state.dashboard.pvt_dash_sul);
+  const engPvt = state.dashboard && state.dashboard.engine && state.dashboard.engine.pvt_dash_sul;
+  const longFmt = tryLongFormatPvt(engPvt) ||
+                  tryLongFormatPvt(state.dashboard && state.dashboard.pvt_dash_sul);
   const pvt = longFmt ? null : parsePvtDashBlock(state.dashboard && state.dashboard.pvt_dash_sul);
 
   if (longFmt) {
@@ -1216,12 +1557,27 @@ function pruneEmpty(b) {
 function renderMiniTable(divId, sheetData) {
   const el = document.getElementById(divId);
   if (!el) return;
-  if (!sheetData || !sheetData.rows || !sheetData.rows.length) {
-    el.innerHTML = '<div class="empty-state">Belum ada data</div>';
+
+  // Kontrak: normalisasi + assert — renderer tidak pernah melihat bentuk mentah
+  const tbl = assertTableData(normalizeTableData(sheetData, divId));
+
+  if (tbl.sourceError) {
+    el.innerHTML = '<div class="empty-state">DATA ERROR / SOURCE UNAVAILABLE<br>' +
+      '<span style="font-size:.75rem;opacity:.7">' + esc(tbl.sourceError) + '</span></div>';
     return;
   }
+  if (!tbl.rows.length) {
+    const msg = (sheetData && sheetData.emptyMessage) || 'Belum ada data';
+    el.innerHTML = '<div class="empty-state">' + esc(msg) + '</div>';
+    return;
+  }
+  dbgLog('renderMiniTable ' + divId, {
+    source: sheetData && sheetData.label,
+    rows: tbl.rows.length,
+    cols: tbl.headers.length
+  });
 
-  let blocks = explodeWideBlocks(splitColumnBlocks(sheetData))
+  let blocks = explodeWideBlocks(splitColumnBlocks({ headers: tbl.headers, rows: tbl.rows }))
     .map(pruneEmpty)
     .filter(b => b.rows.length && b.size > 0);
 
@@ -1796,7 +2152,7 @@ async function deleteRow(sheetKey, rowIndex) {
   await apiCall(c.actions.del, c.api === 'pivot'
     ? { sheet: c.sheetName, rowIndex: rowIndex }
     : { rowIndex: rowIndex });
-  cacheDel('sheet:' + sheetKey); // invalidasi cache sheet terkait
+  invalidateAfterWrite(sheetKey);
   closeModal();
   showToast('Data berhasil dihapus');
   loadSheet(sheetKey, true);
@@ -1907,10 +2263,15 @@ function saveForm() {
   btn.disabled = true;
   apiCall(action, payload)
     .then(() => {
-      cacheDel('sheet:' + ctx.sheetKey); // invalidasi cache sheet terkait
+      invalidateAfterWrite(ctx.sheetKey);
       closeModal();
       showToast(ctx.mode === 'add' ? 'Data berhasil ditambahkan' : 'Data berhasil diperbarui');
       loadSheet(ctx.sheetKey, true);
+      // Segarkan dashboard bila edit menyangkut sumber KPI/pivot
+      if (['site-sul', 'site-kal'].includes(ctx.sheetKey) || PIVOT_KEYS.includes(ctx.sheetKey)) {
+        cacheDel('dashboard');
+        if (state.currentTab === 'dashboard') loadDashboard(true);
+      }
     })
     .catch(() => {})
     .finally(() => { btn.disabled = false; });
@@ -2076,50 +2437,209 @@ function startSplash(onDone) {
   };
 }
 
+/* ==================== REKONSILIASI MANUAL vs ENGINE ====================
+ * Parallel-run (keputusan user): tabel input manual TIDAK dihapus.
+ * Panel ini menyandingkan angka manual vs engine + delta, dan memungkinkan
+ * investigasi WID penyusun tiap delta via action=metric-wids (lineage).
+ */
+
+const RECON_CAT_SUL = { 'Assignment': 'assignment', 'HI Done': 'hi_done',
+  'Connected': 'connected', 'SM ATP': 'sm_atp', 'SM Dismantle': 'sm_dismantle',
+  'Inbound Done': 'inbound_done', 'FI INEOM': 'fi_ineom',
+  'eATP Done': 'eatp_done', 'BAUT Done': 'baut_done' };
+const RECON_CAT_KAL = { 'MOS': 'mos', 'HI': 'hi_done', 'Connected': 'connected' };
+const RECON_MILESTONE = { 'MOS Done': 'mos', 'HI Done': 'hi_done',
+  'Connected': 'connected', 'SM ATP': 'sm_atp', 'ATP Passed': 'atp_passed',
+  'FI Ineom': 'fi_ineom', 'Ineom Passed': 'ineom_passed', 'eATP Done': 'eatp_done' };
+
+function reconMonthNum(label) {
+  const i = MONTHS.indexOf(String(label).toUpperCase().substring(0, 3));
+  return i < 0 ? null : (i + 1);
+}
+
+async function loadReconciliation() {
+  const statusEl = document.getElementById('reconStatus');
+  const wrapEl = document.getElementById('reconTables');
+  if (!wrapEl) return;
+  try {
+    if (statusEl) statusEl.textContent = 'Memuat...';
+    const res = await fetch(API_BASE_URL + '?action=compare&year=' +
+      new Date().getFullYear(), { redirect: 'follow' });
+    const j = await res.json();
+    if (!j.success) throw new Error(j.error || 'gagal');
+    if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
+    renderReconciliation(j.data);
+    if (statusEl) {
+      statusEl.textContent = 'dataVersion ' + j.data.dataVersion +
+        ' · ' + new Date(j.data.generatedAt).toLocaleTimeString();
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = 'Gagal: ' + err.message;
+  }
+}
+
+function renderReconciliation(data) {
+  const wrapEl = document.getElementById('reconTables');
+  if (!wrapEl) return;
+  let html = '';
+  data.sections.forEach((sec, si) => {
+    html += '<div class="card" style="margin-bottom:10px;">' +
+      '<h2 style="font-size:.95rem;">' + esc(sec.sheet) +
+      ' <span class="badge">' +
+        'match ' + sec.summary.matched + ' · beda ' + sec.summary.diff +
+        ' · hanya-manual ' + sec.summary.manualOnly +
+        ' · hanya-engine ' + sec.summary.engineOnly +
+      '</span></h2>';
+    if (!sec.rows.length) {
+      html += '<div class="empty-state">Belum ada data pembanding (jalankan Engine dulu)</div></div>';
+      return;
+    }
+    html += '<div class="table-scroll"><table class="data-table compact" id="reconTable-' + si + '">' +
+      '<thead><tr>' +
+        sec.keyHeaders.map(h => '<th>' + esc(h) + '</th>').join('') +
+        '<th>Manual</th><th>Engine</th><th>Delta</th>' +
+      '</tr></thead><tbody>';
+    sec.rows.forEach(r => {
+      const deltaTxt = r.delta === null ? '—' : String(r.delta);
+      const bad = r.delta !== null && r.delta !== 0;
+      const tag = r.manual === null ? ' <span class="badge">hanya-engine</span>'
+        : (r.engine === null ? ' <span class="badge">hanya-manual</span>' : '');
+      // Badge snapshot utk metrik status (metadata dari backend)
+      let snapTag = '';
+      if (sec.metricMeta && sec.metricMeta[r.key[0]] &&
+          sec.metricMeta[r.key[0]].type === 'SNAPSHOT_STATUS') {
+        snapTag = ' <span class="badge" title="' +
+          esc(sec.metricMeta[r.key[0]].note || 'Snapshot saat ini') + '">⏱snapshot</span>';
+      }
+      html += '<tr' + (bad ? ' class="clickable"' : '') +
+        (bad ? ' title="Klik untuk telusuri WID penyusun"' : '') +
+        ' data-section="' + esc(sec.sheet) + '"' +
+        ' data-key="' + esc(r.key.join('|')) + '"' +
+        ' onclick="' + (bad ? 'reconDrill(this)' : '') + '">' +
+        r.key.map((k, ki) => '<td>' + esc(k) + (ki === 0 ? snapTag : '') + '</td>').join('') +
+        '<td class="num">' + esc(r.manual === null ? '—' : r.manual) + '</td>' +
+        '<td class="num">' + esc(r.engine === null ? '—' : r.engine) + '</td>' +
+        '<td class="num"' + (bad ? ' style="color:#ff5252;font-weight:700;"' : '') + '>' +
+          deltaTxt + tag + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  });
+  wrapEl.innerHTML = html;
+}
+
+/** Klik baris delta → tampilkan/sembunyikan daftar WID penyusun metrik tsb */
+async function reconDrill(tr) {
+  // Hapus detail lama pada baris ini bila ada
+  const existing = tr.nextElementSibling;
+  if (existing && existing.classList.contains('recon-detail-row')) {
+    existing.remove();
+    return;
+  }
+  // Tutup detail lain yang terbuka
+  document.querySelectorAll('.recon-detail-row').forEach(el => el.remove());
+
+  const sheet = tr.dataset.section;
+  const keyParts = tr.dataset.key.split('|');
+  const year = new Date().getFullYear();
+
+  let source = 'sul', metric = null, month = null, zone = '';
+  if (sheet === 'Pvt Dash Sul') {
+    metric = RECON_CAT_SUL[keyParts[0]]; month = reconMonthNum(keyParts[1]); zone = keyParts[2] || '';
+  } else if (sheet === 'Pivot Kal') {
+    source = 'kal'; metric = RECON_CAT_KAL[keyParts[0]]; month = reconMonthNum(keyParts[1]);
+  } else if (sheet.indexOf('Dashboard Sulawesi') === 0) {
+    metric = RECON_MILESTONE[keyParts[0]]; month = reconMonthNum(keyParts[1]); zone = keyParts[2] || '';
+  }
+  if (!metric || !month) return;
+
+  const detailRow = document.createElement('tr');
+  detailRow.className = 'recon-detail-row';
+  const td = document.createElement('td');
+  td.colSpan = tr.children.length;
+  td.textContent = 'Menelusuri WID...';
+  detailRow.appendChild(td);
+  tr.after(detailRow);
+
+  try {
+    const j = await apiCall('metric-wids', {
+      source: source, metric: metric,
+      year: year, month: month, zone: zone
+    });
+    const d = j.data;
+    const list = d.rows.slice(0, 50).map(r =>
+      esc(r.wid) + (r.siteName ? ' — ' + esc(truncate(r.siteName, 34)) : '') +
+      ' <span style="opacity:.7">[' + esc(r.value || '-') + ']</span>').join('<br>');
+    td.innerHTML =
+      '<b>' + esc(d.label) + '</b> · sumber ' + esc(d.source) +
+      ' · total penyusun engine: <b>' + d.count + '</b>' +
+      (d.truncated ? ' (menampilkan 50 pertama)' : '') +
+      '<div style="max-height:180px;overflow:auto;margin-top:6px;font-size:.75rem;line-height:1.5;">' +
+      (list || '<i>Tidak ada baris — kemungkinan selisih berasal dari definisi/filter</i>') +
+      '</div>' +
+      '<div style="margin-top:6px;font-size:.72rem;opacity:.75;">Bandingkan dengan catatan manual. ' +
+      'Jika WID engine tampak benar → cache/manual yang usang. Jika ada tanggal invalid → perbaiki RAW.</div>';
+  } catch (err) {
+    td.textContent = 'Gagal menelusuri: ' + err.message;
+  }
+}
+
+
+
 /* ==================== ADMIN TOOLS ==================== */
 
 /**
- * Membuat formula hubungan antar sheet (COUNTIFS)
- * Memanggil backend action 'create-formulas'
+ * FIX (audit K1): action create-formulas DINONAKTIFKAN di backend karena
+ * writer formula lama terbukti destruktif (menghapus layout dashboard +
+ * menulis formula salah kolom). Fungsi ini kini hanya menampilkan info.
  */
 async function createFormulas() {
-  const btn = document.getElementById('btnCreateFormulas');
-  const status = document.getElementById('formulaStatus');
-  
-  if (!confirm('Buat formula hubungan sheet?\n\nIni akan membuat formula COUNTIFS di:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nLanjutkan?')) {
-    return;
-  }
-  
-  // Disable button, show loading
-  btn.disabled = true;
-  btn.textContent = 'Membuat formula...';
-  status.style.display = 'inline';
-  status.textContent = 'Processing...';
-  status.className = 'badge';
-  
+  showToast('Tombol dinonaktifkan: writer formula lama berbahaya. Gunakan "Jalankan Engine" (sheet ENGINE_*).', 'error');
+}
+
+/** Simpan token otorisasi ke localStorage lalu cek role-nya ke backend */
+async function saveToken() {
+  const inp = document.getElementById('authTokenInput');
+  const statusEl = document.getElementById('authStatus');
+  try { localStorage.setItem('yptt_token', inp ? inp.value.trim() : ''); } catch (e) {}
+  if (statusEl) statusEl.textContent = 'Memeriksa token...';
   try {
-    const res = await fetch(API_BASE_URL + '?action=create-formulas', {
+    const res = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'auth-status', token: getToken() }),
       redirect: 'follow'
     });
-    const json = await res.json();
-    
-    if (json.success === true) {
-      status.textContent = 'Berhasil!';
-      status.className = 'badge badge-success';
-      alert('Formula berhasil dibuat!\n\nSheet yang sudah di-update:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nSilakan cek Google Spreadsheet.');
-    } else {
-      status.textContent = 'Gagal';
-      status.className = 'badge badge-error';
-      alert('Gagal membuat formula: ' + (json.error || json.message || 'Unknown error'));
+    const j = await res.json();
+    const info = j && j.data;
+    if (statusEl) {
+      statusEl.textContent = info
+        ? ('Role: ' + info.role + (info.canWriteRaw ? ' (boleh edit RAW)' : ' (read-only)'))
+        : 'Token tidak dikenal';
+      statusEl.className = 'badge ' + (info && info.canWriteRaw ? 'badge-success' : '');
     }
   } catch (err) {
-    status.textContent = 'Error';
-    status.className = 'badge badge-error';
-    alert('Error: ' + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Buat Formula Hubungan Sheet';
-    setTimeout(() => { status.style.display = 'none'; }, 5000);
+    if (statusEl) statusEl.textContent = 'Gagal memeriksa: ' + err.message;
+  }
+}
+
+/** Jalankan calculation engine (butuh role ADMIN) */
+async function runEngineSync() {
+  const statusEl = document.getElementById('engineStatus');
+  try {
+    if (!confirm('Jalankan calculation engine?\n\nHasil ditulis ke sheet ENGINE_* — sheet manual & RAW tidak disentuh.')) return;
+    if (statusEl) statusEl.textContent = 'Engine berjalan...';
+    const j = await apiCall('sync-engine');
+    if (statusEl) {
+      statusEl.textContent = 'Selesai (dataVersion ' + (j.data && j.data.dataVersion) + ')';
+      statusEl.className = 'badge badge-success';
+    }
+    showToast('Engine sync selesai');
+    // Data baru tersedia -> buang cache & render ulang
+    purgeAllAppCache();
+    loadDashboard(true);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = 'Gagal: ' + err.message; statusEl.className = 'badge badge-error'; }
   }
 }
 
@@ -2127,11 +2647,13 @@ window.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('pivotSelect');
   if (sel) sel.addEventListener('change', e => switchPivot(e.target.value));
 
-  // Mulai ambil data SELAMA splash berjalan (paralel, bukan setelahnya)
-  loadTabData('dashboard').catch(() => {});
-  startSplash(() => {
-    // switchTab akan memakai hasil inflight/cache -> instan
-    switchTab('dashboard');
+  // Resolusi backend aktif dulu (health check kandidat URL), baru muat data
+  resolveApiBaseUrl().finally(() => {
+    loadTabData('dashboard').catch(() => {});
+    startSplash(() => {
+      // switchTab akan memakai hasil inflight/cache -> instan
+      switchTab('dashboard');
+    });
   });
 });
 
