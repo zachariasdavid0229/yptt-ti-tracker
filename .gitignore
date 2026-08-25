@@ -1,1 +1,10 @@
-node_modules
+# Secret / kredensial — JANGAN pernah commit
+token.txt
+*.token
+.env
+
+# File sementara Office
+~$*
+
+# Lokal tooling
+.omo/

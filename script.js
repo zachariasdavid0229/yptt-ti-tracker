@@ -23,9 +23,13 @@ let API_BASE_URL = (() => {
   catch (e) { return API_URL_CANDIDATES[0]; }
 })();
 
-/** Token otorisasi (VIEWER/OPERATOR/ADMIN) — diset via panel Admin Tools */
+/** Token otorisasi (VIEWER/OPERATOR/ADMIN) — diset via panel Akses Operator.
+ *  sessionStorage PRIMARY; localStorage fallback (implementasi lama). */
 function getToken() {
-  try { return localStorage.getItem('yptt_token') || ''; } catch (e) { return ''; }
+  try {
+    return sessionStorage.getItem('yptt_token') ||
+           localStorage.getItem('yptt_token') || '';
+  } catch (e) { return ''; }
 }
 
 /**
@@ -219,6 +223,9 @@ let state = {
   page: {},
   filters: {},
   sort: {},
+  authToken: '',        // diisi initAuth() (satu sumber: yptt_token)
+  authRole: '',         // '' | VIEWER | OPERATOR | ADMIN
+  pendingWrite: null,   // {retry:'form'|'delete', sheetKey, rowIndex} — dilanjutkan otomatis setelah login sukses
   dashboard: {
     page: 1,
     pageSize: 10,
@@ -227,35 +234,192 @@ let state = {
   }
 };
 
-// --- AUTH STATE MANAGEMENT ---
-const AUTH_KEY = 'yptt_auth_token';
+// --- AUTH STATE MANAGEMENT (satu sumber token: 'yptt_token') ---
+// sessionStorage PRIMARY, localStorage fallback. Backend tetap authority.
 const AUTH_ROLE_KEY = 'yptt_auth_role';
 
 function saveAuthToken(token) {
-  sessionStorage.setItem(AUTH_KEY, token);
-  localStorage.setItem(AUTH_KEY, token);
+  try { sessionStorage.setItem('yptt_token', token); } catch (e) {}
+  try { localStorage.setItem('yptt_token', token); } catch (e) {} // fallback
 }
 
 function getAuthToken() {
-  return sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || '';
+  return getToken(); // SATU sumber: getToken() (session -> local)
 }
 
 function clearAuthToken() {
-  sessionStorage.removeItem(AUTH_KEY);
-  localStorage.removeItem(AUTH_KEY);
+  try { sessionStorage.removeItem('yptt_token'); } catch (e) {}
+  try { localStorage.removeItem('yptt_token'); } catch (e) {}
+  try { sessionStorage.removeItem(AUTH_ROLE_KEY); } catch (e) {}
+  state.authToken = '';
+  state.authRole = '';
 }
 
 function getAuthRole() {
-  return sessionStorage.getItem(AUTH_ROLE_KEY) || '';
+  try { return sessionStorage.getItem(AUTH_ROLE_KEY) || ''; } catch (e) { return ''; }
 }
 
 function setAuthRole(role) {
-  sessionStorage.setItem(AUTH_ROLE_KEY, role);
+  try { sessionStorage.setItem(AUTH_ROLE_KEY, role); } catch (e) {}
+  state.authRole = role || '';
 }
 
-// Inisialisasi auth state dari sessionStorage
-state.authToken = getAuthToken();
-state.authRole = getAuthRole();
+/**
+ * initAuth(): dipanggil sekali saat DOMContentLoaded.
+ * Ambil token dari storage; jika ada tetapi role belum terverifikasi di sesi ini,
+ * verifikasi senyap ke backend (auth-status).
+ */
+async function initAuth() {
+  state.authToken = getAuthToken();
+  state.authRole = getAuthRole();
+  dbgLog('[AUTH]', { role: state.authRole || 'ANONYMOUS', authenticated: !!state.authToken });
+  if (state.authToken && !state.authRole) await verifyAuth({ silent: true });
+}
+
+/** verifyAuth(): cek token ke backend (action auth-status), set/clear role */
+async function verifyAuth(opts = {}) {
+  const statusEl = document.getElementById('authStatus');
+  try {
+    if (!statusEl && !opts.silent) { /* no-op */ }
+    const res = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'auth-status', token: getToken() }),
+      redirect: 'follow'
+    });
+    const j = await res.json();
+    const info = j && j.data;
+    const validRole = info && ['VIEWER', 'OPERATOR', 'ADMIN'].indexOf(info.role) !== -1;
+    if (validRole) {
+      setAuthRole(info.role);
+      state.authToken = getAuthToken();
+    } else {
+      // Token invalid/ANONYMOUS -> role tetap kosong (token tidak dibuang otomatis agar user sadar)
+      setAuthRole('');
+    }
+    dbgLog('[AUTH]', { verified: !!validRole, role: state.authRole || 'ANONYMOUS' });
+    if (!opts.silent && statusEl) updateAuthStatusBadge(validRole ? info : null);
+    renderAuthPanel();
+    return validRole ? info : null;
+  } catch (err) {
+    console.warn('[AUTH] verify gagal:', err.message);
+    return null;
+  }
+}
+
+function updateAuthStatusBadge(info) {
+  const statusEl = document.getElementById('authStatus');
+  if (!statusEl) return;
+  if (info && info.role) {
+    statusEl.textContent = '● ' + info.role + (info.canWriteRaw ? ' (boleh edit RAW)' : ' (read-only)');
+    statusEl.className = 'badge ' + (info.canWriteRaw ? 'badge-success' : '');
+  } else {
+    statusEl.textContent = '● Anonymous';
+    statusEl.className = 'badge';
+  }
+}
+
+/** Panel "Akses Operator": render sesuai state (belum login / terautentikasi).
+ *  Token TIDAK pernah ditampilkan plaintext setelah tersimpan. */
+function renderAuthPanel() {
+  const box = document.getElementById('authPanelBox');
+  if (!box) return;
+  const r = state.authRole;
+  const authenticated = r === 'VIEWER' || r === 'OPERATOR' || r === 'ADMIN';
+  if (authenticated) {
+    box.innerHTML =
+      '<div class="auth-status-row"><span class="badge badge-success">&#9679; Terautentikasi</span>' +
+      '<span class="badge">' + esc(r) + (r !== 'VIEWER' ? ' — RAW write aktif' : ' — read-only') + '</span></div>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;">' +
+      '<button class="btn btn-secondary" onclick="clearTokenUI()">Keluar</button></div>';
+  } else {
+    box.innerHTML =
+      '<div class="auth-status-row"><span class="badge">&#9679; Belum login</span>' +
+      '<span class="badge">Anonymous — READ only</span></div>' +
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">' +
+      '<input type="password" id="authTokenInput" class="input" placeholder="Token OPERATOR/ADMIN"' +
+      ' style="max-width:240px;" autocomplete="off">' +
+      '<button class="btn btn-primary" onclick="saveToken()">Masuk</button></div>';
+  }
+}
+
+/** Buka panel Admin Tools + fokuskan input token (untuk kasus non-modal) */
+function openAuthPanel() {
+  const sec = document.getElementById('adminToolsCard');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => {
+    const inp = document.getElementById('authTokenInput');
+    if (inp) inp.focus();
+  }, 350);
+}
+
+/* --- Login INLINE di dalam modal (agar isi form tidak hilang) --- */
+function removeModalAuthStrip() {
+  const el = document.getElementById('modalAuthStrip');
+  if (el) el.remove();
+}
+
+function showModalAuthStrip(retryLabel) {
+  removeModalAuthStrip();
+  const footer = document.querySelector('#modalOverlay .modal-footer');
+  if (!footer) return;
+  const div = document.createElement('div');
+  div.id = 'modalAuthStrip';
+  div.style.cssText = 'width:100%;margin-bottom:10px;padding:10px;border:1px solid var(--border);' +
+    'border-radius:8px;background:rgba(0,212,255,.06);';
+  div.innerHTML =
+    '<div style="font-size:.85rem;font-weight:600;margin-bottom:6px;">&#128274; Login Operator diperlukan</div>' +
+    '<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;">' +
+    'Isi form Anda tetap tersimpan. Masukkan token untuk melanjutkan ' + esc(retryLabel) + '.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+    '<input type="password" id="modalAuthToken" class="input" placeholder="Token OPERATOR/ADMIN"' +
+    ' style="max-width:220px;" autocomplete="off">' +
+    '<button type="button" class="btn btn-primary" onclick="modalAuthContinue()">Masuk &amp; Lanjutkan</button>' +
+    '</div>';
+  footer.insertBefore(div, footer.firstChild);
+  const inp = document.getElementById('modalAuthToken');
+  if (inp) inp.focus();
+}
+
+/** Verifikasi token dari strip modal lalu LANJUTKAN write yang tertunda */
+async function modalAuthContinue() {
+  const inp = document.getElementById('modalAuthToken');
+  const t = inp ? inp.value.trim() : '';
+  if (!t) { showToast('Masukkan token Operator terlebih dahulu.', 'error'); return; }
+  saveAuthToken(t);
+  const info = await verifyAuth();
+  if (!info || (state.authRole !== 'OPERATOR' && state.authRole !== 'ADMIN')) {
+    showToast('Token tidak valid atau sudah kedaluwarsa.', 'error');
+    clearAuthToken();
+    return; // strip tetap; form tetap utuh
+  }
+  dbgLog('[AUTH]', { modalLogin: true, role: state.authRole });
+  showToast('Login berhasil sebagai ' + state.authRole);
+  renderAuthPanel();
+  removeModalAuthStrip();
+  const pw = state.pendingWrite;
+  state.pendingWrite = null;
+  if (pw && pw.retry === 'form') saveForm();               // re-read DOM form utuh
+  else if (pw && pw.retry === 'delete') deleteRow(pw.sheetKey, pw.rowIndex);
+}
+
+/** UI saat write diblokir karena belum login */
+function showLoginForBlockedWrite(pending) {
+  const modalOpen = !document.getElementById('modalOverlay').classList.contains('hidden');
+  if (modalOpen) {
+    showModalAuthStrip(pending && pending.retry === 'delete' ? 'penghapusan data' : 'penyimpanan data');
+  } else {
+    openAuthPanel();
+  }
+}
+
+/** Hapus token (dari UI) */
+function clearTokenUI() {
+  clearAuthToken();
+  updateAuthStatusBadge(null);
+  renderAuthPanel();
+  showToast('Anda telah keluar. Status: Anonymous.');
+}
 // --- AKHIR AUTH STATE MANAGEMENT ---
 
 Object.keys(SHEET_CONFIG).forEach(k => {
@@ -295,29 +459,106 @@ async function apiCall(action, payload = {}) {
     if (json.data && json.data.dataVersion !== undefined) setDataVersion(json.data.dataVersion);
     return json;
   } catch (err) {
-    showToast('Gagal: ' + err.message, 'error');
+    const rawMsg = String((err && err.message) || '');
+    const friendly = mapAuthError(err); // raw error dicatat di console oleh mapper
+    // Token kedaluwarsa/dicabut di tengah sesi (TEST K): bersihkan auth state,
+    // minta login ulang. Tidak ada retry otomatis; form tetap utuh.
+    if (/ANONYMOUS|butuh role/i.test(rawMsg) && state.authToken) {
+      clearAuthToken();
+      renderAuthPanel();
+      showToast('Token tidak lagi valid. Silakan login kembali sebagai Operator.', 'error');
+      dbgLog('[AUTH]', { expiredOrRevoked: true, cleared: true });
+    } else {
+      showToast('Gagal: ' + (friendly || err.message), 'error');
+    }
     throw err;
   } finally {
     showLoading(false);
   }
 }
 
-/* ==================== API WRITE WRAPPER ====================
- * apiWrite(action, payload) - tulis data dengan otentikasi token.
- * - Jika tidak ada token/role yang valid, tampilkan pesan friendly
- *   dan tidak lakukan fetch (form tetap bisa diedit user).
- * - Jika token expired/invalid, handle dengan form preservation.
- * - Jika berhasil, buang cache & render ulang.
+/* ==================== GLOBAL WRITE GUARD + API WRITE WRAPPER ====================
+ * SEMUA operasi WRITE wajib melewati apiWrite().
+ * - Anonymous -> request TIDAK dikirim; UI minta token (form tetap utuh).
+ * - RAW write butuh OPERATOR/ADMIN (sesuai backend canWriteRaw).
+ * - sync-engine butuh ADMIN.
+ * - pivot-* diblokir frontend (Pivot Lock) — backend tetap authority.
  */
-function apiWrite(action, payload = {}) {
-  // Cek apakah user sudah login dengan role yang sesuai
-  if (!state.authToken || state.authRole !== 'OPERATOR' && state.authRole !== 'ADMIN') {
-    showToast('Anda belum login sebagai Operator. Masukkan token Operator terlebih dahulu.', 'error');
-    // Form masih bisa diedit user, jangan reset apa-apa
-    return Promise.reject(new Error('User not authenticated'));
+function isPivotAction(action) {
+  return action === 'pivot-add' || action === 'pivot-update' || action === 'pivot-delete';
+}
+
+/** Cek role sebelum write. Return true jika boleh lanjut, false jika diblokir.
+ *  MURNI keputusan; efek UI ditangani apiWrite/showLoginForBlockedWrite. */
+function ensureAuthenticatedForWrite(action) {
+  const role = state.authRole || '';
+
+  // Engine sync: khusus ADMIN
+  if (action === 'sync-engine') {
+    if (role !== 'ADMIN') {
+      showToast('Aksi ini membutuhkan role Admin.', 'error');
+      return false;
+    }
+    return true;
   }
-  // Lanjutkan dengan apiCall biasa (sudah menyertakan token)
-  return apiCall(action, payload);
+
+  // Pivot/Derived: terkunci oleh Pivot Lock (SEMUA role)
+  if (isPivotAction(action)) {
+    showToast('Tabel pivot/derived terkunci (Pivot Lock). Edit melalui sheet RAW yang diizinkan.', 'error');
+    dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true, reason: 'PIVOT_LOCK', role: role || 'ANONYMOUS' });
+    return false;
+  }
+
+  // RAW write: butuh OPERATOR atau ADMIN
+  if (!state.authToken || (role !== 'OPERATOR' && role !== 'ADMIN')) {
+    showToast('Anda belum login sebagai Operator.\nMasukkan Token Operator untuk melakukan perubahan data.', 'error');
+    dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true, role: role || 'ANONYMOUS' });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * SATU-SATUNYA jalur write frontend.
+ * meta: { retry:'form'|'delete', sheetKey, rowIndex } untuk auto-lanjut setelah login.
+ * Tidak ada retry otomatis berulang — lanjut hanya SEKALI setelah login sukses.
+ */
+function apiWrite(action, payload = {}, meta = {}) {
+  if (!ensureAuthenticatedForWrite(action)) {
+    if (!isPivotAction(action)) { // pivot lock tidak perlu login prompt
+      const pending = {
+        retry: meta.retry || 'form',
+        sheetKey: meta.sheetKey || '',
+        rowIndex: meta.rowIndex !== undefined ? meta.rowIndex : null
+      };
+      state.pendingWrite = pending;
+      showLoginForBlockedWrite(pending);
+    }
+    return Promise.reject(new Error('AUTH_BLOCKED'));
+  }
+  dbgLog('[WRITE]', { action: action, tokenAttached: !!getToken(), role: state.authRole });
+  return apiCall(action, payload)
+    .then(j => { dbgLog('[WRITE]', { action: action, result: 'SUCCESS' }); return j; })
+    .catch(err => { dbgLog('[WRITE]', { action: action, result: 'FAILED', error: err.message }); throw err; });
+}
+
+/* ==================== Error Mapper (global) ====================
+ * Backend tetap authority; UI hanya menerjemahkan pesan menjadi bahasa user.
+ * Raw error selalu dicatat ke console untuk debug.
+ */
+function mapAuthError(err) {
+  const m = String(err && err.message || '');
+  console.warn('[YPTT][RAW-ERROR]', m);
+  if (/ANONYMOUS/i.test(m) && /OPERATOR/i.test(m)) {
+    return 'Token belum tersedia atau tidak valid.\nSilakan masukkan Token Operator.';
+  }
+  if (/ADMIN/i.test(m)) return 'Aksi ini membutuhkan role Admin.';
+  if (/OPERATOR/i.test(m)) return 'Aksi ini membutuhkan role Operator.';
+  if (/Failed to fetch|NetworkError|HTTP 5\d\d/i.test(m)) {
+    return 'Gagal terhubung ke server. Data belum disimpan.';
+  }
+  if (/VALIDATION|invalid data|kolom/i.test(m)) return 'Periksa kembali data yang dimasukkan.';
+  return null; // bukan error auth/network — biarkan pesan asli
 }
 
 /* ==================== Data Version (spec V2 §20-21) ====================
@@ -715,25 +956,36 @@ function renderDashboardStage3(skipPageReset = false) {
     renderMiniTable('dashSulTable', dashSulViewPaginated);
     // --- Akhir Pagination ---
     renderDashboardPagination();
+  }
+  renderLatestTable();
+  renderHeaderStats();
+}
 
 function renderDashboardPagination() {
   const totalPages = state.dashboard.totalPages;
   const currentPage = state.dashboard.page;
   const pageSize = state.dashboard.pageSize;
+  const totalRows = state.dashboard.totalRows;
   const container = document.getElementById('dashSulPagination');
   if (!container) return;
 
+  // Kosong: tanpa controls, tampilkan empty-state saja
+  if (totalRows === 0) { container.innerHTML = ''; return; }
+
   let html = '';
 
+  // Info rentang baris (spec §20): "Menampilkan 1–10 dari N"
+  const startNum = (currentPage - 1) * pageSize + 1;
+  const endNum = Math.min(currentPage * pageSize, totalRows);
+  html += `<span class="badge" style="font-size:.75rem;">Menampilkan ${startNum}–${endNum} dari ${totalRows}</span>`;
+
   // Tombol Previous
-  if (currentPage > 1) {
-    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${currentPage - 1})">← Prev</button>`;
-  }
+  html += `<button class="btn btn-sm" onclick="goToDashboardPage(${Math.max(1, currentPage - 1)})"` +
+    (currentPage <= 1 ? ' disabled' : '') + `>← Prev</button>`;
 
   // Tombol Next
-  if (currentPage < totalPages) {
-    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${currentPage + 1})">Next →</button>`;
-  }
+  html += `<button class="btn btn-sm" onclick="goToDashboardPage(${Math.min(totalPages, currentPage + 1)})"` +
+    (currentPage >= totalPages ? ' disabled' : '') + `>Next →</button>`;
 
   // Jika totalPages kecil, tampilkan nomor halaman
   if (totalPages <= 7) {
@@ -2079,6 +2331,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (icon) icon.textContent = '\u25BC';
     }
   });
+  // Global auth init: render panel (initAuth dipanggil setelah endpoint siap)
+  updateAuthStatusBadge(null);
+  renderAuthPanel();
 });window.addEventListener('resize', () => {
   clearTimeout(_resizeT);
   _resizeT = setTimeout(() => {
@@ -2307,13 +2562,19 @@ async function deleteFromDetail() {
 async function deleteRow(sheetKey, rowIndex) {
   if (!confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.')) return;
   const c = cfg(sheetKey);
-  await apiCall(c.actions.del, c.api === 'pivot'
-    ? { sheet: c.sheetName, rowIndex: rowIndex }
-    : { rowIndex: rowIndex });
-  invalidateAfterWrite(sheetKey);
-  closeModal();
-  showToast('Data berhasil dihapus');
-  loadSheet(sheetKey, true);
+  try {
+    await apiWrite(c.actions.del, c.api === 'pivot'
+      ? { sheet: c.sheetName, rowIndex: rowIndex }
+      : { rowIndex: rowIndex },
+      { retry: 'delete', sheetKey: sheetKey, rowIndex: rowIndex });
+    invalidateAfterWrite(sheetKey);
+    closeModal();
+    showToast('Data berhasil dihapus');
+    loadSheet(sheetKey, true);
+  } catch (err) {
+    // Form/detail tetap terbuka; pesan sudah ditampilkan apiCall (ternormalisasi)
+    dbgLog('[WRITE]', { action: c.actions.del, result: 'FAILED', error: err.message });
+  }
 }
 
 /* ==================== Modal Form (Tambah/Edit) ==================== */
@@ -2431,10 +2692,12 @@ function saveForm() {
         if (state.currentTab === 'dashboard') loadDashboard(true);
       }
     })
-    .catch(() => {
-      // Form state preserved - jangan reset form, hanya tampilkan toast error
-      // Token invalid/expired: tampilkan pesan friendly
-      showToast('Anda belum login sebagai Operator. Masukkan token Operator terlebih dahulu.', 'error');
+    .catch((err) => {
+      // Form TIDAK direset — user dapat memperbaiki token lalu Save lagi.
+      // Pesan error sudah ditampilkan oleh apiCall (ternormalisasi via mapAuthError).
+      if (err && err.message === 'AUTH_BLOCKED') {
+        dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true });
+      }
     })
     .finally(() => { btn.disabled = false; });
 }
@@ -2759,32 +3022,41 @@ async function createFormulas() {
   showToast('Tombol dinonaktifkan: writer formula lama berbahaya. Gunakan "Jalankan Engine" (sheet ENGINE_*).', 'error');
 }
 
-/** Simpan token otorisasi ke localStorage lalu cek role-nya ke backend */
+/** Simpan token lalu VERIFIKASI ke backend sebelum menganggap valid */
 async function saveToken() {
   const inp = document.getElementById('authTokenInput');
   const statusEl = document.getElementById('authStatus');
-  try { localStorage.setItem('yptt_token', inp ? inp.value.trim() : ''); } catch (e) {}
+  const t = inp ? inp.value.trim() : '';
+  if (!t) { showToast('Masukkan token terlebih dahulu.', 'error'); return; }
   if (statusEl) statusEl.textContent = 'Memeriksa token...';
   try {
+    // Simpan sementara agar getToken() mengirim token ini ke backend
+    saveAuthToken(t);
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'auth-status', token: getToken() }),
+      body: JSON.stringify({ action: 'auth-status', token: t }),
       redirect: 'follow'
     });
     const j = await res.json();
     const info = j && j.data;
-    // Simpan token dan role ke auth state
-    if (inp) saveAuthToken(inp.value.trim());
-    if (info) setAuthRole(info.role);
-    if (statusEl) {
-      statusEl.textContent = info
-        ? ('Role: ' + info.role + (info.canWriteRaw ? ' (boleh edit RAW)' : ' (read-only)'))
-        : 'Token tidak dikenal';
-      statusEl.className = 'badge ' + (info && info.canWriteRaw ? 'badge-success' : '');
+    const validRole = info && ['VIEWER', 'OPERATOR', 'ADMIN'].indexOf(info.role) !== -1;
+    if (validRole) {
+      setAuthRole(info.role);           // valid -> role tersimpan
+      state.authToken = getAuthToken();
+      showToast('Token valid. Role: ' + info.role);
+    } else {
+      clearAuthToken();                 // INVALID -> buang, role tetap ANONYMOUS
+      showToast('Token tidak valid atau sudah kedaluwarsa.', 'error');
     }
+    updateAuthStatusBadge(validRole ? info : null);
+    renderAuthPanel();
+    if (inp) inp.value = '';            // JANGAN tampilkan token plaintext di DOM
   } catch (err) {
-    if (statusEl) statusEl.textContent = 'Gagal memeriksa: ' + err.message;
+    clearAuthToken();
+    updateAuthStatusBadge(null);
+    renderAuthPanel();
+    showToast('Gagal terhubung ke server. Data belum disimpan.', 'error');
   }
 }
 
@@ -2794,7 +3066,7 @@ async function runEngineSync() {
   try {
     if (!confirm('Jalankan calculation engine?\n\nHasil ditulis ke sheet ENGINE_* — sheet manual & RAW tidak disentuh.')) return;
     if (statusEl) statusEl.textContent = 'Engine berjalan...';
-    const j = await apiCall('sync-engine');
+    const j = await apiWrite('sync-engine');
     if (statusEl) {
       statusEl.textContent = 'Selesai (dataVersion ' + (j.data && j.data.dataVersion) + ')';
       statusEl.className = 'badge badge-success';
@@ -2812,8 +3084,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('pivotSelect');
   if (sel) sel.addEventListener('change', e => switchPivot(e.target.value));
 
-  // Resolusi backend aktif dulu (health check kandidat URL), baru muat data
+  // Resolusi backend aktif dulu (health check kandidat URL), baru auth + muat data
   resolveApiBaseUrl().finally(() => {
+    initAuth(); // verifikasi token tersimpan (jika ada) setelah endpoint siap
     loadTabData('dashboard').catch(() => {});
     startSplash(() => {
       // switchTab akan memakai hasil inflight/cache -> instan

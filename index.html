@@ -152,12 +152,10 @@
           merusak layout dashboard &mdash; lihat PROJECT_AUDIT.md K1). Gantinya, calculation engine
           menulis hasil ke sheet <code>ENGINE *</code> tanpa menyentuh sheet manual/RAW.
         </p>
+        <!-- AKSES OPERATOR (login sekali, berlaku untuk semua edit RAW) -->
+        <div id="authPanelBox" style="margin-bottom:10px;"></div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <input type="password" id="authTokenInput" class="input" placeholder="Token (OPERATOR/ADMIN)"
-            style="max-width: 240px;" autocomplete="off">
-          <button class="btn btn-secondary" onclick="saveToken()">Cek / Simpan Token</button>
           <button class="btn btn-primary" onclick="runEngineSync()">Jalankan Engine</button>
-          <span id="authStatus" class="badge"></span>
           <span id="engineStatus" class="badge"></span>
         </div>
         <p style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted);">
@@ -289,6 +287,6 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-  <script src="script.js?v=20260825l" defer></script>
+  <script src="script.js?v=20260826AUTH1" defer></script>
 </body>
 </html>
