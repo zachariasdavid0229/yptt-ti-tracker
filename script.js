@@ -226,12 +226,13 @@ let state = {
   authToken: '',        // diisi initAuth() (satu sumber: yptt_token)
   authRole: '',         // '' | VIEWER | OPERATOR | ADMIN
   pendingWrite: null,   // {retry:'form'|'delete', sheetKey, rowIndex} — dilanjutkan otomatis setelah login sukses
-  dashboard: {
-    page: 1,
+  dashPg: {             // pagination Ringkasan Sulawesi — TERPISAH dari state.dashboard
+    page: 1,            // (payload API menimpa state.dashboard; struct ini harus selamat)
     pageSize: 10,
     totalRows: 0,
     totalPages: 0
-  }
+  },
+  dashboard: null       // payload hasil normalizeDashboardResponse()
 };
 
 // --- AUTH STATE MANAGEMENT (satu sumber token: 'yptt_token') ---
@@ -913,7 +914,7 @@ function renderDashboardStage3(skipPageReset = false) {
     // Reset ke halaman 1 bila filter/sort/dataVersion berubah
     // kecuali jika dipanggil dari goToDashboardPage (user-driven)
     if (!skipPageReset) {
-      state.dashboard.page = 1;
+      state.dashPg.page = 1;
     }
 
     const e = d.engine;
@@ -934,12 +935,12 @@ function renderDashboardStage3(skipPageReset = false) {
 
     const dashSulView = dashSulPick.tbl || { headers: [], rows: [], emptyMessage: dashSulPick.emptyMessage };
 
-    // --- Pagination untuk Ringkasan Sulawesi ---
-    const page = state.dashboard.page;
-    const pageSize = state.dashboard.pageSize;
+    // --- Pagination untuk Ringkasan Sulawesi (state.dashPg — aman dari payload overwrite) ---
+    const page = state.dashPg.page;
+    const pageSize = state.dashPg.pageSize;
     const totalRows = dashSulView.rows ? dashSulView.rows.length : 0;
-    state.dashboard.totalRows = totalRows;
-    state.dashboard.totalPages = Math.ceil(totalRows / pageSize) || 1;
+    state.dashPg.totalRows = totalRows;
+    state.dashPg.totalPages = Math.ceil(totalRows / pageSize) || 1;
 
     // Slice rows untuk halaman saat ini
     const startIdx = (page - 1) * pageSize;
@@ -962,10 +963,10 @@ function renderDashboardStage3(skipPageReset = false) {
 }
 
 function renderDashboardPagination() {
-  const totalPages = state.dashboard.totalPages;
-  const currentPage = state.dashboard.page;
-  const pageSize = state.dashboard.pageSize;
-  const totalRows = state.dashboard.totalRows;
+  const totalPages = state.dashPg.totalPages;
+  const currentPage = state.dashPg.page;
+  const pageSize = state.dashPg.pageSize;
+  const totalRows = state.dashPg.totalRows;
   const container = document.getElementById('dashSulPagination');
   if (!container) return;
 
@@ -1035,8 +1036,8 @@ function renderDashboardPagination() {
 }
 
 function goToDashboardPage(page) {
-  if (page < 1 || page > state.dashboard.totalPages) return;
-  state.dashboard.page = page;
+  if (page < 1 || page > state.dashPg.totalPages) return;
+  state.dashPg.page = page;
   // Reset filter/sort state when changing pages
   state.filters.dashboardSulawesi = {};
   state.sort.dashboardSulawesi = {};
