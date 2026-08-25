@@ -7,8 +7,8 @@
  * lalu URL legacy pada kode lama.
  */
 const API_URL_CANDIDATES = [
-  /* Deployment aktif 25 Agu 2026 — v3.0.7-final.1 (FINAL MIGRATION, Pivot lock aktif) */
-  'https://script.google.com/macros/s/AKfycbyrYYoWJbP180oZ4LROGa4eu1qx_aIlQuh9_Cn26zfOSe0Zn-Kkkle1Niv2uZKsFm-g/exec',
+  /* Deployment aktif 26 Agu 2026 — v3.0.7-final.1 + AUTH Phase-1 DORMANT (YPTT_AUTH_USERS=0) */
+  'https://script.google.com/macros/s/AKfycbx-bxknH5nO9V3N1FmdLYQ9DU-LCSFH53AOZLkTqklO6-l2hGUdYgy0YWLKTZYnOJ7G/exec',
   /* v3.0.4-contract.5 (fallback) */
   'https://script.google.com/macros/s/AKfycbxI8-jSA_83r-v3-fC2ICqyssLEBNv0U5Ln1S4wwsNiFht25xKyLUYl7HmlkFJHps0o/exec',
   'https://script.google.com/macros/s/AKfycbzUiTE_OKeO-f9l1QNTVzlaK83MXzRWifXPeg6gVgezAvDB9U7VqXrEo0i7etlX5MEe/exec',
