@@ -212,15 +212,51 @@ function badgeHTML(v) {
 
 let state = {
   sheets: {},           // { sheetKey: [rows] }
-  dashboard: null,
   kpi: null,
   mosChart: null,
   currentTab: 'dashboard',
   activePivot: 'pvt-dash-sul',
   page: {},
   filters: {},
-  sort: {}
+  sort: {},
+  dashboard: {
+    page: 1,
+    pageSize: 10,
+    totalRows: 0,
+    totalPages: 0
+  }
 };
+
+// --- AUTH STATE MANAGEMENT ---
+const AUTH_KEY = 'yptt_auth_token';
+const AUTH_ROLE_KEY = 'yptt_auth_role';
+
+function saveAuthToken(token) {
+  sessionStorage.setItem(AUTH_KEY, token);
+  localStorage.setItem(AUTH_KEY, token);
+}
+
+function getAuthToken() {
+  return sessionStorage.getItem(AUTH_KEY) || localStorage.getItem(AUTH_KEY) || '';
+}
+
+function clearAuthToken() {
+  sessionStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(AUTH_KEY);
+}
+
+function getAuthRole() {
+  return sessionStorage.getItem(AUTH_ROLE_KEY) || '';
+}
+
+function setAuthRole(role) {
+  sessionStorage.setItem(AUTH_ROLE_KEY, role);
+}
+
+// Inisialisasi auth state dari sessionStorage
+state.authToken = getAuthToken();
+state.authRole = getAuthRole();
+// --- AKHIR AUTH STATE MANAGEMENT ---
 
 Object.keys(SHEET_CONFIG).forEach(k => {
   state.page[k] = 1;
@@ -264,6 +300,24 @@ async function apiCall(action, payload = {}) {
   } finally {
     showLoading(false);
   }
+}
+
+/* ==================== API WRITE WRAPPER ====================
+ * apiWrite(action, payload) - tulis data dengan otentikasi token.
+ * - Jika tidak ada token/role yang valid, tampilkan pesan friendly
+ *   dan tidak lakukan fetch (form tetap bisa diedit user).
+ * - Jika token expired/invalid, handle dengan form preservation.
+ * - Jika berhasil, buang cache & render ulang.
+ */
+function apiWrite(action, payload = {}) {
+  // Cek apakah user sudah login dengan role yang sesuai
+  if (!state.authToken || state.authRole !== 'OPERATOR' && state.authRole !== 'ADMIN') {
+    showToast('Anda belum login sebagai Operator. Masukkan token Operator terlebih dahulu.', 'error');
+    // Form masih bisa diedit user, jangan reset apa-apa
+    return Promise.reject(new Error('User not authenticated'));
+  }
+  // Lanjutkan dengan apiCall biasa (sudah menyertakan token)
+  return apiCall(action, payload);
 }
 
 /* ==================== Data Version (spec V2 §20-21) ====================
@@ -612,9 +666,15 @@ function pickDerived(engTbl, legTbl) {
   };
 }
 
-function renderDashboardStage3() {
+function renderDashboardStage3(skipPageReset = false) {
   const d = state.dashboard;
   if (d) {
+    // Reset ke halaman 1 bila filter/sort/dataVersion berubah
+    // kecuali jika dipanggil dari goToDashboardPage (user-driven)
+    if (!skipPageReset) {
+      state.dashboard.page = 1;
+    }
+
     const e = d.engine;
 
     const pvtPick = pickDerived(e.pvt_dash_sul, null); // chart sumber utama
@@ -632,12 +692,103 @@ function renderDashboardStage3() {
     d._sources = { dashSulawesi: dashSulPick.source, pivotKal: kalPick.source };
 
     const dashSulView = dashSulPick.tbl || { headers: [], rows: [], emptyMessage: dashSulPick.emptyMessage };
-    const kalView = kalPick.tbl || { headers: [], rows: [], emptyMessage: kalPick.emptyMessage };
 
-    renderMiniTable('dashSulTable', dashSulView);
+    // --- Pagination untuk Ringkasan Sulawesi ---
+    const page = state.dashboard.page;
+    const pageSize = state.dashboard.pageSize;
+    const totalRows = dashSulView.rows ? dashSulView.rows.length : 0;
+    state.dashboard.totalRows = totalRows;
+    state.dashboard.totalPages = Math.ceil(totalRows / pageSize) || 1;
+
+    // Slice rows untuk halaman saat ini
+    const startIdx = (page - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const paginatedRows = dashSulView.rows ? dashSulView.rows.slice(startIdx, endIdx) : [];
+    const paginatedHeaders = dashSulView.headers ? dashSulView.headers : [];
+
+    const dashSulViewPaginated = {
+      headers: paginatedHeaders.length > 0 ? paginatedHeaders : dashSulView.headers,
+      rows: paginatedRows,
+      emptyMessage: dashSulView.emptyMessage
+    };
+
+    renderMiniTable('dashSulTable', dashSulViewPaginated);
+    // --- Akhir Pagination ---
+    renderDashboardPagination();
+
+function renderDashboardPagination() {
+  const totalPages = state.dashboard.totalPages;
+  const currentPage = state.dashboard.page;
+  const pageSize = state.dashboard.pageSize;
+  const container = document.getElementById('dashSulPagination');
+  if (!container) return;
+
+  let html = '';
+
+  // Tombol Previous
+  if (currentPage > 1) {
+    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${currentPage - 1})">← Prev</button>`;
   }
-  renderLatestTable();
-  renderHeaderStats();
+
+  // Tombol Next
+  if (currentPage < totalPages) {
+    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${currentPage + 1})">Next →</button>`;
+  }
+
+  // Jika totalPages kecil, tampilkan nomor halaman
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === currentPage) {
+        html += `<span class="btn btn-sm active">${i}</span>`;
+      } else {
+        html += `<button class="btn btn-sm" onclick="goToDashboardPage(${i})">${i}</button>`;
+      }
+    }
+  } else {
+    // Jumlah halaman banyak: tampilkan 3 awal, titik, tengah, titok, 3 akhir
+    // Awal
+    html += `<button class="btn btn-sm" onclick="goToDashboardPage(1)">1</button>`;
+    html += `<span class="btn btn-sm disabled">...</span>`;
+
+    // Tengah
+    const half = Math.floor(pageSize / 2);
+    let start = Math.max(2, currentPage - half);
+    let end = Math.min(totalPages - 1, currentPage + half);
+    if (start > 2) {
+      html += `<span class="btn btn-sm disabled">...</span>`;
+      start = 2;
+    }
+    if (end < totalPages - 1) {
+      end = totalPages - 1;
+      if (start < totalPages - 1) {
+        html += `<span class="btn btn-sm disabled">...</span>`;
+      }
+    }
+    for (let i = start; i <= end; i++) {
+      if (i === currentPage) {
+        html += `<span class="btn btn-sm active">${i}</span>`;
+      } else {
+        html += `<button class="btn btn-sm" onclick="goToDashboardPage(${i})">${i}</button>`;
+      }
+    }
+
+    // Akhir
+    if (end < totalPages - 1) {
+      html += `<span class="btn btn-sm disabled">...</span>`;
+    }
+    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function goToDashboardPage(page) {
+  if (page < 1 || page > state.dashboard.totalPages) return;
+  state.dashboard.page = page;
+  // Reset filter/sort state when changing pages
+  state.filters.dashboardSulawesi = {};
+  state.sort.dashboardSulawesi = {};
+  renderDashboardStage3(true); // skipPageReset=true: jangan reset page, user sedang bergerak manual
 }
 
 async function doLoadDashboard(force) {
@@ -2268,7 +2419,7 @@ function saveForm() {
 
   const btn = document.getElementById('btnSave');
   btn.disabled = true;
-  apiCall(action, payload)
+  apiWrite(action, payload)
     .then(() => {
       invalidateAfterWrite(ctx.sheetKey);
       closeModal();
@@ -2280,7 +2431,11 @@ function saveForm() {
         if (state.currentTab === 'dashboard') loadDashboard(true);
       }
     })
-    .catch(() => {})
+    .catch(() => {
+      // Form state preserved - jangan reset form, hanya tampilkan toast error
+      // Token invalid/expired: tampilkan pesan friendly
+      showToast('Anda belum login sebagai Operator. Masukkan token Operator terlebih dahulu.', 'error');
+    })
     .finally(() => { btn.disabled = false; });
 }
 
@@ -2619,6 +2774,9 @@ async function saveToken() {
     });
     const j = await res.json();
     const info = j && j.data;
+    // Simpan token dan role ke auth state
+    if (inp) saveAuthToken(inp.value.trim());
+    if (info) setAuthRole(info.role);
     if (statusEl) {
       statusEl.textContent = info
         ? ('Role: ' + info.role + (info.canWriteRaw ? ' (boleh edit RAW)' : ' (read-only)'))
