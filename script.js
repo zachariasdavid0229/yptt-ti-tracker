@@ -397,7 +397,14 @@ function safeCell(v) {
   if (/^\[object /.test(s)) return '';
   if (s === 'NaN' || s === 'undefined' || s === 'null') return '';
   // TAMBAHAN: deteksi nilai error spreadsheet
-  if (/#ERROR|#REF!|#VALUE!|#DIV/0!|#NAME?/.test(s)) return '';
+  if (
+    s === '#ERROR' ||
+    s === '#REF!' ||
+    s === '#VALUE!' ||
+    s === '#DIV/0!' ||
+    s === '#NAME?'
+  )
+    return '';
   return v;
 }
 
