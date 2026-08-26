@@ -1095,7 +1095,8 @@ async function doLoadDashboard(force) {
       } finally {
         done++;
         setLoadingText('Mengambil data ' + done + '/' + pending + '... (' + d.label + ')');
-        splashTick(done / pending * 92, 'Loading ' + d.label + '...');
+        splashProgress(done / pending * 92, 'Loading ' + d.label + '...');
+        if (done === pending) { renderDashboardStage2(); renderDashboardStage3(); }
       }
     }));
 
