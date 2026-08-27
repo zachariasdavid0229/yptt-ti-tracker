@@ -1,66 +1,6 @@
 /* ============ YPTT TI Tracker - Script ============ */
 
-/* ==================== Backend API Resolver ====================
- * FIX (audit M1): URL backend tunggal rawan salah deployment.
- * Kandidat dicoba via health check; yang hidup dipakai & disimpan.
- * Urutan kandidat: URL terakhir tercatat di CATATAN-LANJUTAN.md,
- * lalu URL legacy pada kode lama.
- */
-const API_URL_CANDIDATES = [
-  /* Deployment aktif 26 Agu 2026 — v3.0.7-final.1 + AUTH Phase-1 DORMANT (YPTT_AUTH_USERS=0) */
-  'https://script.google.com/macros/s/AKfycbx-bxknH5nO9V3N1FmdLYQ9DU-LCSFH53AOZLkTqklO6-l2hGUdYgy0YWLKTZYnOJ7G/exec',
-  /* v3.0.4-contract.5 (fallback) */
-  'https://script.google.com/macros/s/AKfycbxI8-jSA_83r-v3-fC2ICqyssLEBNv0U5Ln1S4wwsNiFht25xKyLUYl7HmlkFJHps0o/exec',
-  'https://script.google.com/macros/s/AKfycbzUiTE_OKeO-f9l1QNTVzlaK83MXzRWifXPeg6gVgezAvDB9U7VqXrEo0i7etlX5MEe/exec',
-  'https://script.google.com/macros/s/AKfycbxFV-vxshY2bSTKASvNaYP7ueBY6nL4_Em_xGUhIs4dAFwCqukNCSBeIN2jo59kR2es/exec',
-  'https://script.google.com/macros/s/AKfycbx-bxknH5nO9V3N1FmdLYQ9DU-LCSFH53AOZLkTqklO6-l2hGUdYgy0YWLKTZYnOJ7G/exec',
-  'https://script.google.com/macros/s/AKfycbyMFXVcUZtsUDdchmscpgmBtvgMCN-66kP5iMjBnJwJ1aNeZ1kxGRKi-oMzAYW27PXs/exec',
-  'https://script.google.com/macros/s/AKfycbwKYa_TT_jQogEBSMD0wFrZ0drMbfAs_2vnInu2h-GEBOmkUEST1GCRM8uuG1Q51k6W/exec'
-];
-
-let API_BASE_URL = (() => {
-  try { return localStorage.getItem('yptt_api_url') || API_URL_CANDIDATES[0]; }
-  catch (e) { return API_URL_CANDIDATES[0]; }
-})();
-
-/** Token otorisasi (VIEWER/OPERATOR/ADMIN) — diset via panel Akses Operator.
- *  sessionStorage PRIMARY; localStorage fallback (implementasi lama). */
-function getToken() {
-  try {
-    return sessionStorage.getItem('yptt_token') ||
-           localStorage.getItem('yptt_token') || '';
-  } catch (e) { return ''; }
-}
-
-/**
- * Probe kandidat berurutan (kandidat terbaru selalu DICOBA DULU sehingga
- * deployment baru otomatis mengambil alih dari URL lama yang tersimpan
- * di localStorage). Yang hidup dipakai & disimpan untuk debug/diplay.
- */
-async function resolveApiBaseUrl(force) {
-  const saved = (() => { try { return localStorage.getItem('yptt_api_url') || ''; } catch (e) { return ''; } })();
-  // Urutan probe: kandidat[0] dulu, lalu sisanya; URL tersimpan hanya prioritas
-  // kalau ia bukan kandidat[0] tapi masih hidup dan kandidat[0] mati.
-  let order = API_URL_CANDIDATES.slice();
-  if (saved && saved !== API_URL_CANDIDATES[0] && API_URL_CANDIDATES.includes(saved)) {
-    order = [API_URL_CANDIDATES[0], saved].concat(
-      API_URL_CANDIDATES.filter(u => u !== API_URL_CANDIDATES[0] && u !== saved));
-  }
-  for (const url of order) {
-    try {
-      const res = await fetch(url + '?action=health', { redirect: 'follow' });
-      const j = await res.json();
-      if (j && j.success) {
-        API_BASE_URL = url;
-        try { localStorage.setItem('yptt_api_url', url); } catch (e) {}
-        console.info('[YPTT] Backend aktif:', url, 'v' + (j.data && j.data.backendVersion));
-        return url;
-      }
-    } catch (e) { /* kandidat mati, lanjut */ }
-  }
-  console.warn('[YPTT] Semua kandidat backend gagal — memakai', API_BASE_URL);
-  return API_BASE_URL;
-}
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbz7_2Ht3NAxcSjgalOV54samRX-iAGdCysJm2ZzGsdd9R8HsiMOZo3rfOGC4mwjB8-K/exec';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ZONE_COLORS = ['#2d6bb8', '#00b4d8', '#4a90d9', '#0077b6', '#8899aa'];
@@ -216,212 +156,15 @@ function badgeHTML(v) {
 
 let state = {
   sheets: {},           // { sheetKey: [rows] }
+  dashboard: null,
   kpi: null,
   mosChart: null,
   currentTab: 'dashboard',
   activePivot: 'pvt-dash-sul',
   page: {},
   filters: {},
-  sort: {},
-  authToken: '',        // diisi initAuth() (satu sumber: yptt_token)
-  authRole: '',         // '' | VIEWER | OPERATOR | ADMIN
-  pendingWrite: null,   // {retry:'form'|'delete', sheetKey, rowIndex} — dilanjutkan otomatis setelah login sukses
-  dashPg: {             // pagination Ringkasan Sulawesi — TERPISAH dari state.dashboard
-    page: 1,            // (payload API menimpa state.dashboard; struct ini harus selamat)
-    pageSize: 10,
-    totalRows: 0,
-    totalPages: 0
-  },
-  dashboard: null       // payload hasil normalizeDashboardResponse()
+  sort: {}
 };
-
-// --- AUTH STATE MANAGEMENT (satu sumber token: 'yptt_token') ---
-// sessionStorage PRIMARY, localStorage fallback. Backend tetap authority.
-const AUTH_ROLE_KEY = 'yptt_auth_role';
-
-function saveAuthToken(token) {
-  try { sessionStorage.setItem('yptt_token', token); } catch (e) {}
-  try { localStorage.setItem('yptt_token', token); } catch (e) {} // fallback
-}
-
-function getAuthToken() {
-  return getToken(); // SATU sumber: getToken() (session -> local)
-}
-
-function clearAuthToken() {
-  try { sessionStorage.removeItem('yptt_token'); } catch (e) {}
-  try { localStorage.removeItem('yptt_token'); } catch (e) {}
-  try { sessionStorage.removeItem(AUTH_ROLE_KEY); } catch (e) {}
-  state.authToken = '';
-  state.authRole = '';
-}
-
-function getAuthRole() {
-  try { return sessionStorage.getItem(AUTH_ROLE_KEY) || ''; } catch (e) { return ''; }
-}
-
-function setAuthRole(role) {
-  try { sessionStorage.setItem(AUTH_ROLE_KEY, role); } catch (e) {}
-  state.authRole = role || '';
-}
-
-/**
- * initAuth(): dipanggil sekali saat DOMContentLoaded.
- * Ambil token dari storage; jika ada tetapi role belum terverifikasi di sesi ini,
- * verifikasi senyap ke backend (auth-status).
- */
-async function initAuth() {
-  state.authToken = getAuthToken();
-  state.authRole = getAuthRole();
-  dbgLog('[AUTH]', { role: state.authRole || 'ANONYMOUS', authenticated: !!state.authToken });
-  if (state.authToken && !state.authRole) await verifyAuth({ silent: true });
-}
-
-/** verifyAuth(): cek token ke backend (action auth-status), set/clear role */
-async function verifyAuth(opts = {}) {
-  const statusEl = document.getElementById('authStatus');
-  try {
-    if (!statusEl && !opts.silent) { /* no-op */ }
-    const res = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'auth-status', token: getToken() }),
-      redirect: 'follow'
-    });
-    const j = await res.json();
-    const info = j && j.data;
-    const validRole = info && ['VIEWER', 'OPERATOR', 'ADMIN'].indexOf(info.role) !== -1;
-    if (validRole) {
-      setAuthRole(info.role);
-      state.authToken = getAuthToken();
-    } else {
-      // Token invalid/ANONYMOUS -> role tetap kosong (token tidak dibuang otomatis agar user sadar)
-      setAuthRole('');
-    }
-    dbgLog('[AUTH]', { verified: !!validRole, role: state.authRole || 'ANONYMOUS' });
-    if (!opts.silent && statusEl) updateAuthStatusBadge(validRole ? info : null);
-    renderAuthPanel();
-    return validRole ? info : null;
-  } catch (err) {
-    console.warn('[AUTH] verify gagal:', err.message);
-    return null;
-  }
-}
-
-function updateAuthStatusBadge(info) {
-  const statusEl = document.getElementById('authStatus');
-  if (!statusEl) return;
-  if (info && info.role) {
-    statusEl.textContent = '● ' + info.role + (info.canWriteRaw ? ' (boleh edit RAW)' : ' (read-only)');
-    statusEl.className = 'badge ' + (info.canWriteRaw ? 'badge-success' : '');
-  } else {
-    statusEl.textContent = '● Anonymous';
-    statusEl.className = 'badge';
-  }
-}
-
-/** Panel "Akses Operator": render sesuai state (belum login / terautentikasi).
- *  Token TIDAK pernah ditampilkan plaintext setelah tersimpan. */
-function renderAuthPanel() {
-  const box = document.getElementById('authPanelBox');
-  if (!box) return;
-  const r = state.authRole;
-  const authenticated = r === 'VIEWER' || r === 'OPERATOR' || r === 'ADMIN';
-  if (authenticated) {
-    box.innerHTML =
-      '<div class="auth-status-row"><span class="badge badge-success">&#9679; Terautentikasi</span>' +
-      '<span class="badge">' + esc(r) + (r !== 'VIEWER' ? ' — RAW write aktif' : ' — read-only') + '</span></div>' +
-      '<div style="display:flex;gap:8px;margin-top:8px;align-items:center;">' +
-      '<button class="btn btn-secondary" onclick="clearTokenUI()">Keluar</button></div>';
-  } else {
-    box.innerHTML =
-      '<div class="auth-status-row"><span class="badge">&#9679; Belum login</span>' +
-      '<span class="badge">Anonymous — READ only</span></div>' +
-      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">' +
-      '<input type="password" id="authTokenInput" class="input" placeholder="Token OPERATOR/ADMIN"' +
-      ' style="max-width:240px;" autocomplete="off">' +
-      '<button class="btn btn-primary" onclick="saveToken()">Masuk</button></div>';
-  }
-}
-
-/** Buka panel Admin Tools + fokuskan input token (untuk kasus non-modal) */
-function openAuthPanel() {
-  const sec = document.getElementById('adminToolsCard');
-  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setTimeout(() => {
-    const inp = document.getElementById('authTokenInput');
-    if (inp) inp.focus();
-  }, 350);
-}
-
-/* --- Login INLINE di dalam modal (agar isi form tidak hilang) --- */
-function removeModalAuthStrip() {
-  const el = document.getElementById('modalAuthStrip');
-  if (el) el.remove();
-}
-
-function showModalAuthStrip(retryLabel) {
-  removeModalAuthStrip();
-  const footer = document.querySelector('#modalOverlay .modal-footer');
-  if (!footer) return;
-  const div = document.createElement('div');
-  div.id = 'modalAuthStrip';
-  div.style.cssText = 'width:100%;margin-bottom:10px;padding:10px;border:1px solid var(--border);' +
-    'border-radius:8px;background:rgba(0,212,255,.06);';
-  div.innerHTML =
-    '<div style="font-size:.85rem;font-weight:600;margin-bottom:6px;">&#128274; Login Operator diperlukan</div>' +
-    '<div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;">' +
-    'Isi form Anda tetap tersimpan. Masukkan token untuk melanjutkan ' + esc(retryLabel) + '.</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
-    '<input type="password" id="modalAuthToken" class="input" placeholder="Token OPERATOR/ADMIN"' +
-    ' style="max-width:220px;" autocomplete="off">' +
-    '<button type="button" class="btn btn-primary" onclick="modalAuthContinue()">Masuk &amp; Lanjutkan</button>' +
-    '</div>';
-  footer.insertBefore(div, footer.firstChild);
-  const inp = document.getElementById('modalAuthToken');
-  if (inp) inp.focus();
-}
-
-/** Verifikasi token dari strip modal lalu LANJUTKAN write yang tertunda */
-async function modalAuthContinue() {
-  const inp = document.getElementById('modalAuthToken');
-  const t = inp ? inp.value.trim() : '';
-  if (!t) { showToast('Masukkan token Operator terlebih dahulu.', 'error'); return; }
-  saveAuthToken(t);
-  const info = await verifyAuth();
-  if (!info || (state.authRole !== 'OPERATOR' && state.authRole !== 'ADMIN')) {
-    showToast('Token tidak valid atau sudah kedaluwarsa.', 'error');
-    clearAuthToken();
-    return; // strip tetap; form tetap utuh
-  }
-  dbgLog('[AUTH]', { modalLogin: true, role: state.authRole });
-  showToast('Login berhasil sebagai ' + state.authRole);
-  renderAuthPanel();
-  removeModalAuthStrip();
-  const pw = state.pendingWrite;
-  state.pendingWrite = null;
-  if (pw && pw.retry === 'form') saveForm();               // re-read DOM form utuh
-  else if (pw && pw.retry === 'delete') deleteRow(pw.sheetKey, pw.rowIndex);
-}
-
-/** UI saat write diblokir karena belum login */
-function showLoginForBlockedWrite(pending) {
-  const modalOpen = !document.getElementById('modalOverlay').classList.contains('hidden');
-  if (modalOpen) {
-    showModalAuthStrip(pending && pending.retry === 'delete' ? 'penghapusan data' : 'penyimpanan data');
-  } else {
-    openAuthPanel();
-  }
-}
-
-/** Hapus token (dari UI) */
-function clearTokenUI() {
-  clearAuthToken();
-  updateAuthStatusBadge(null);
-  renderAuthPanel();
-  showToast('Anda telah keluar. Status: Anonymous.');
-}
-// --- AKHIR AUTH STATE MANAGEMENT ---
 
 Object.keys(SHEET_CONFIG).forEach(k => {
   state.page[k] = 1;
@@ -451,137 +194,19 @@ async function apiCall(action, payload = {}) {
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action: action, token: getToken() }, payload)),
+      body: JSON.stringify(Object.assign({ action: action }, payload)),
       redirect: 'follow'
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     if (!json.success) throw new Error(json.error || json.message || 'Unknown error');
-    if (json.data && json.data.dataVersion !== undefined) setDataVersion(json.data.dataVersion);
     return json;
   } catch (err) {
-    const rawMsg = String((err && err.message) || '');
-    const friendly = mapAuthError(err); // raw error dicatat di console oleh mapper
-    // Token kedaluwarsa/dicabut di tengah sesi (TEST K): bersihkan auth state,
-    // minta login ulang. Tidak ada retry otomatis; form tetap utuh.
-    if (/ANONYMOUS|butuh role/i.test(rawMsg) && state.authToken) {
-      clearAuthToken();
-      renderAuthPanel();
-      showToast('Token tidak lagi valid. Silakan login kembali sebagai Operator.', 'error');
-      dbgLog('[AUTH]', { expiredOrRevoked: true, cleared: true });
-    } else {
-      showToast('Gagal: ' + (friendly || err.message), 'error');
-    }
+    showToast('Gagal: ' + err.message, 'error');
     throw err;
   } finally {
     showLoading(false);
   }
-}
-
-/* ==================== GLOBAL WRITE GUARD + API WRITE WRAPPER ====================
- * SEMUA operasi WRITE wajib melewati apiWrite().
- * - Anonymous -> request TIDAK dikirim; UI minta token (form tetap utuh).
- * - RAW write butuh OPERATOR/ADMIN (sesuai backend canWriteRaw).
- * - sync-engine butuh ADMIN.
- * - pivot-* diblokir frontend (Pivot Lock) — backend tetap authority.
- */
-function isPivotAction(action) {
-  return action === 'pivot-add' || action === 'pivot-update' || action === 'pivot-delete';
-}
-
-/** Cek role sebelum write. Return true jika boleh lanjut, false jika diblokir.
- *  MURNI keputusan; efek UI ditangani apiWrite/showLoginForBlockedWrite. */
-function ensureAuthenticatedForWrite(action) {
-  const role = state.authRole || '';
-
-  // Engine sync: khusus ADMIN
-  if (action === 'sync-engine') {
-    if (role !== 'ADMIN') {
-      showToast('Aksi ini membutuhkan role Admin.', 'error');
-      return false;
-    }
-    return true;
-  }
-
-  // Pivot/Derived: terkunci oleh Pivot Lock (SEMUA role)
-  if (isPivotAction(action)) {
-    showToast('Tabel pivot/derived terkunci (Pivot Lock). Edit melalui sheet RAW yang diizinkan.', 'error');
-    dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true, reason: 'PIVOT_LOCK', role: role || 'ANONYMOUS' });
-    return false;
-  }
-
-  // RAW write: butuh OPERATOR atau ADMIN
-  if (!state.authToken || (role !== 'OPERATOR' && role !== 'ADMIN')) {
-    showToast('Anda belum login sebagai Operator.\nMasukkan Token Operator untuk melakukan perubahan data.', 'error');
-    dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true, role: role || 'ANONYMOUS' });
-    return false;
-  }
-  return true;
-}
-
-/**
- * SATU-SATUNYA jalur write frontend.
- * meta: { retry:'form'|'delete', sheetKey, rowIndex } untuk auto-lanjut setelah login.
- * Tidak ada retry otomatis berulang — lanjut hanya SEKALI setelah login sukses.
- */
-function apiWrite(action, payload = {}, meta = {}) {
-  if (!ensureAuthenticatedForWrite(action)) {
-    if (!isPivotAction(action)) { // pivot lock tidak perlu login prompt
-      const pending = {
-        retry: meta.retry || 'form',
-        sheetKey: meta.sheetKey || '',
-        rowIndex: meta.rowIndex !== undefined ? meta.rowIndex : null
-      };
-      state.pendingWrite = pending;
-      showLoginForBlockedWrite(pending);
-    }
-    return Promise.reject(new Error('AUTH_BLOCKED'));
-  }
-  dbgLog('[WRITE]', { action: action, tokenAttached: !!getToken(), role: state.authRole });
-  return apiCall(action, payload)
-    .then(j => { dbgLog('[WRITE]', { action: action, result: 'SUCCESS' }); return j; })
-    .catch(err => { dbgLog('[WRITE]', { action: action, result: 'FAILED', error: err.message }); throw err; });
-}
-
-/* ==================== Error Mapper (global) ====================
- * Backend tetap authority; UI hanya menerjemahkan pesan menjadi bahasa user.
- * Raw error selalu dicatat ke console untuk debug.
- */
-function mapAuthError(err) {
-  const m = String(err && err.message || '');
-  console.warn('[YPTT][RAW-ERROR]', m);
-  if (/ANONYMOUS/i.test(m) && /OPERATOR/i.test(m)) {
-    return 'Token belum tersedia atau tidak valid.\nSilakan masukkan Token Operator.';
-  }
-  if (/ADMIN/i.test(m)) return 'Aksi ini membutuhkan role Admin.';
-  if (/OPERATOR/i.test(m)) return 'Aksi ini membutuhkan role Operator.';
-  if (/Failed to fetch|NetworkError|HTTP 5\d\d/i.test(m)) {
-    return 'Gagal terhubung ke server. Data belum disimpan.';
-  }
-  if (/VALIDATION|invalid data|kolom/i.test(m)) return 'Periksa kembali data yang dimasukkan.';
-  return null; // bukan error auth/network — biarkan pesan asli
-}
-
-/* ==================== Data Version (spec V2 §20-21) ====================
- * Cache tidak lagi bergantung TTL buta: backend mengirim dataVersion.
- * Jika versi berubah (ada edit RAW / engine sync), seluruh cache lokal
- * dibuang agar website tidak menampilkan data basi.
- */
-let DATA_VERSION = null;
-
-function setDataVersion(v) {
-  v = Number(v);
-  if (!v || isNaN(v)) return;
-  if (DATA_VERSION !== null && v !== DATA_VERSION) purgeAllAppCache();
-  DATA_VERSION = v;
-}
-
-function purgeAllAppCache() {
-  try {
-    Object.keys(localStorage)
-      .filter(k => k.indexOf('yptt_v1_') === 0)
-      .forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
 }
 
 /* ==================== Cache localStorage (TTL 5 menit) ==================== */
@@ -595,11 +220,6 @@ function cacheGet(name) {
     const raw = localStorage.getItem(cacheKey(name));
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    // Version-aware invalidation: cache dari versi data lama dibuang
-    if (obj.v && DATA_VERSION !== null && obj.v !== DATA_VERSION) {
-      localStorage.removeItem(cacheKey(name));
-      return null;
-    }
     return { data: obj.data, stale: (Date.now() - obj.t) > CACHE_TTL };
   } catch (e) { return null; }
 }
@@ -607,36 +227,19 @@ function cacheGet(name) {
 function cacheSet(name, data) {
   try {
     try {
-      localStorage.setItem(cacheKey(name),
-        JSON.stringify({ t: Date.now(), v: DATA_VERSION, data: data }));
+      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
     } catch (quotaErr) {
       // Kuota penuh: bersihkan cache aplikasi lalu coba sekali lagi
-      purgeAllAppCache();
-      localStorage.setItem(cacheKey(name),
-        JSON.stringify({ t: Date.now(), v: DATA_VERSION, data: data }));
+      Object.keys(localStorage)
+        .filter(k => k.indexOf('yptt_v1_') === 0)
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(cacheKey(name), JSON.stringify({ t: Date.now(), data: data }));
     }
   } catch (e) { /* kuota tetap tidak cukup - lewati caching */ }
 }
 
 function cacheDel(name) {
   try { localStorage.removeItem(cacheKey(name)); } catch (e) {}
-}
-
-/**
- * Invalidasi cache pasca-tulis (fix audit M2):
- * selain sheet target, bundle dashboard & salinan site juga dibuang
- * agar KPI/grafik tidak menampilkan data lama sampai TTL habis.
- */
-function invalidateAfterWrite(sheetKey) {
-  cacheDel('sheet:' + sheetKey);
-  if (PIVOT_KEYS.includes(sheetKey)) {
-    PIVOT_KEYS.forEach(k => cacheDel('sheet:' + k));
-  }
-  if (sheetKey === 'site-sul' || sheetKey === 'site-kal' || PIVOT_KEYS.includes(sheetKey)) {
-    cacheDel('dashboard');
-    cacheDel('sheet-site-sul');
-    cacheDel('sheet-site-kal');
-  }
 }
 
 function setLoadingText(t) {
@@ -660,138 +263,6 @@ function showToast(msg, type = 'success') {
   toast.className = 'toast ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
-}
-
-/* ==================== DATA CONTRACT LAYER ====================
- * Normalizer + validator tunggal antara API dan renderer (spec fix §2-§8).
- * Renderer TIDAK boleh tahu sumber data; semua payload melewati
- * normalizeTableData()/assertTableData() agar tidak ada cell
- * undefined / [object Object] / NaN / error-object yang dirender.
- */
-
-const YPTT_DEBUG = (() => {
-  try {
-    if (new URLSearchParams(location.search).has('debug')) {
-      localStorage.setItem('yptt_debug', '1');
-    }
-    return localStorage.getItem('yptt_debug') === '1';
-  } catch (e) { return false; }
-})();
-
-function dbgLog(title, info) {
-  if (!YPTT_DEBUG) return;
-  console.groupCollapsed('%c[YPTT DEBUG] ' + title, 'color:#00b4d8;font-weight:bold;');
-  Object.keys(info || {}).forEach(k => console.log(k + ':', info[k]));
-  console.groupEnd();
-}
-
-/** Sel aman untuk render: undefined/null/NaN/[object Object] -> '' */
-function safeCell(v) {
-  if (v === undefined || v === null) return '';
-  if (typeof v === 'number') return isNaN(v) ? '' : v;
-  const s = String(v);
-  if (/^\[object /.test(s)) return '';
-  if (s === 'NaN' || s === 'undefined' || s === 'null') return '';
-  // TAMBAHAN: deteksi nilai error spreadsheet
-  if (
-    s === '#ERROR' ||
-    s === '#REF!' ||
-    s === '#VALUE!' ||
-    s === '#DIV/0!' ||
-    s === '#NAME?'
-  )
-    return '';
-  return v;
-}
-
-/**
- * Normalisasi SEMUA bentuk tabel ke {headers:[], rows:[[]], meta:{}}:
- * A) {headers, rows}  B) {rows} tanpa headers  C) array of objects
- * D) payload error {error} -> ditandai, bukan dirender sebagai cell.
- */
-function normalizeTableData(data, label) {
-  const out = { headers: [], rows: [], label: label || '', sourceError: null, empty: true };
-
-  if (data === null || data === undefined) return out;
-
-  // D) payload berbentuk error
-  if (!Array.isArray(data) && typeof data === 'object' && data.error) {
-    out.sourceError = String(data.error);
-    return out;
-  }
-
-  // C) array of objects
-  if (Array.isArray(data)) {
-    if (!data.length) return out;
-    const headerSet = [];
-    data.forEach(r => {
-      Object.keys(r || {}).forEach(k => {
-        if (k !== 'rowIndex' && headerSet.indexOf(k) === -1) headerSet.push(k);
-      });
-    });
-    out.headers = headerSet;
-    out.rows = data.map(r => headerSet.map(h => safeCell(r[h])));
-    out.empty = false;
-    return out;
-  }
-
-  if (typeof data !== 'object') return out;
-
-  // A/B) {headers?, rows}
-  if (Array.isArray(data.headers)) {
-    out.headers = data.headers.map(h => String(h === undefined || h === null ? '' : h));
-  }
-  if (Array.isArray(data.rows)) {
-    out.rows = data.rows.map(r => {
-      if (Array.isArray(r)) return r.map(c => safeCell(c));
-      if (r && typeof r === 'object') {
-        const keys = out.headers.length ? out.headers : Object.keys(r);
-        if (!out.headers.length) out.headers = keys.filter(k => k !== 'rowIndex');
-        return out.headers.map(h => safeCell(r[h]));
-      }
-      return [safeCell(r)];
-    });
-  }
-  // Jika headers kosong tapi rows ada → deteksi dari baris pertama (legacy)
-  if (!out.headers.length && out.rows.length) {
-    const w = Math.max(...out.rows.map(r => r.length));
-    out.headers = Array.from({ length: w }, (_, i) => 'Kolom ' + (i + 1));
-  }
-  out.empty = !out.rows.length;
-  return out;
-}
-
-/** Validasi terakhir sebelum render; mengganti bentuk ilegal dengan aman. */
-function assertTableData(tbl) {
-  if (!tbl || typeof tbl !== 'object') tbl = { headers: [], rows: [] };
-  if (!Array.isArray(tbl.headers)) tbl.headers = [];
-  if (!Array.isArray(tbl.rows)) tbl.rows = [];
-  tbl.headers = tbl.headers.map(h => String(h === undefined || h === null ? '' : h));
-  tbl.rows = tbl.rows.map(r => Array.isArray(r) ? r.map(c => safeCell(c)) : [safeCell(r)]);
-  return tbl;
-}
-
-/**
- * Bentuk baku response dashboard: kpi + tiga tabel legacy + blok engine,
- * semuanya sudah ternormalisasi. Frontend selanjutnya hanya melihat bentuk ini.
- */
-function normalizeDashboardResponse(d) {
-  d = d || {};
-  const engineRaw = d.engine || {};
-  return {
-    kpi: d.kpi || null,
-    dataVersion: d.dataVersion,
-    dashboard_2026: normalizeTableData(d.dashboard_2026, 'Dashboard_2026'),
-    dashboard_sulawesi: normalizeTableData(d.dashboard_sulawesi, 'Dashboard Sulawesi (manual)'),
-    pivot_kal: normalizeTableData(d.pivot_kal, 'Pivot Kal (manual)'),
-    engine: {
-      available: !!engineRaw.available,
-      pvt_dash_sul: normalizeTableData(engineRaw.pvt_dash_sul, 'ENGINE Pvt Dash Sul'),
-      pivot_kal: normalizeTableData(engineRaw.pivot_kal, 'ENGINE Pivot Kal'),
-      dash_sulawesi: normalizeTableData(engineRaw.dash_sulawesi, 'ENGINE Dashboard Sulawesi'),
-      summary_sul: normalizeTableData(engineRaw.summary_sul, 'ENGINE Summary Sul')
-    }
-  };
 }
 
 /* ==================== Tab Navigation ==================== */
@@ -860,17 +331,9 @@ const DASH_DEFS = [
 
 function applyDashPiece(name, data) {
   if (name === 'dashboard') {
-    // Kontrak tunggal: semua konsumen menerima bentuk ternormalisasi
-    state.dashboard = normalizeDashboardResponse(data);
-    dbgLog('dashboard normalized', {
-      backendDataVersion: state.dashboard.dataVersion,
-      engineAvailable: state.dashboard.engine.available,
-      dashSulawesi: state.dashboard.dashboard_sulawesi.rows.length + ' rows / ' + state.dashboard.dashboard_sulawesi.headers.length + ' cols',
-      enginePivotKal: state.dashboard.engine.pivot_kal.rows.length + ' rows',
-      engineDashSulawesi: state.dashboard.engine.dash_sulawesi.rows.length + ' rows'
-    });
+    state.dashboard = data;
     // KPI disertakan dalam response dashboard (R5: batch API)
-    if (state.dashboard.kpi) { state.kpi = state.dashboard.kpi; setDataVersion(state.dashboard.kpi.dataVersion); }
+    if (data && data.kpi) state.kpi = data.kpi;
   }
   else if (name === 'sheet-site-sul') state.sheets['site-sul'] = data || [];
   else if (name === 'sheet-site-kal') state.sheets['site-kal'] = data || [];
@@ -895,153 +358,12 @@ function renderDashboardStage2() {
   }, 0);
 }
 // Tahap 3: tabel + hitung ulang issue
-function pickDerived(engTbl, legTbl) {
-  // Prioritas WAJIB (spec fix §3/§8): ENGINE > manual legacy > empty-state.
-  if (engTbl && !engTbl.empty) return { tbl: engTbl, source: engTbl.label || 'ENGINE' };
-  if (legTbl && !legTbl.empty) return { tbl: legTbl, source: legTbl.label || 'LEGACY' };
-  return {
-    tbl: null,
-    source: (engTbl ? engTbl.label : '') ,
-    emptyMessage: (engTbl && engTbl.label)
-      ? 'ENGINE belum dibuat — jalankan Engine dari Admin Tools'
-      : 'Data belum tersedia'
-  };
-}
-
-function renderDashboardStage3(skipPageReset = false) {
-  const d = state.dashboard;
-  if (d) {
-    // Reset ke halaman 1 bila filter/sort/dataVersion berubah
-    // kecuali jika dipanggil dari goToDashboardPage (user-driven)
-    if (!skipPageReset) {
-      state.dashPg.page = 1;
-    }
-
-    const e = d.engine;
-
-    const pvtPick = pickDerived(e.pvt_dash_sul, null); // chart sumber utama
-
-    const dashSulPick = pickDerived(e.dash_sulawesi, d.dashboard_sulawesi);
-    const kalPick = pickDerived(e.pivot_kal, d.pivot_kal);
-
-    dbgLog('stage3 source resolution', {
-      dashSulawesi: dashSulPick.source,
-      pivotKal: kalPick.source,
-      pvtForChart: pvtPick.source
-    });
-
-    // Simpan sumber untuk ditampilkan bila diperlukan
-    d._sources = { dashSulawesi: dashSulPick.source, pivotKal: kalPick.source };
-
-    const dashSulView = dashSulPick.tbl || { headers: [], rows: [], emptyMessage: dashSulPick.emptyMessage };
-
-    // --- Pagination untuk Ringkasan Sulawesi (state.dashPg — aman dari payload overwrite) ---
-    const page = state.dashPg.page;
-    const pageSize = state.dashPg.pageSize;
-    const totalRows = dashSulView.rows ? dashSulView.rows.length : 0;
-    state.dashPg.totalRows = totalRows;
-    state.dashPg.totalPages = Math.ceil(totalRows / pageSize) || 1;
-
-    // Slice rows untuk halaman saat ini
-    const startIdx = (page - 1) * pageSize;
-    const endIdx = startIdx + pageSize;
-    const paginatedRows = dashSulView.rows ? dashSulView.rows.slice(startIdx, endIdx) : [];
-    const paginatedHeaders = dashSulView.headers ? dashSulView.headers : [];
-
-    const dashSulViewPaginated = {
-      headers: paginatedHeaders.length > 0 ? paginatedHeaders : dashSulView.headers,
-      rows: paginatedRows,
-      emptyMessage: dashSulView.emptyMessage
-    };
-
-    renderMiniTable('dashSulTable', dashSulViewPaginated);
-    // --- Akhir Pagination ---
-    renderDashboardPagination();
-  }
+function renderDashboardStage3() {
+  renderMiniTable('dash2026Table', state.dashboard && state.dashboard.dashboard_2026);
+  renderMiniTable('dashSulTable', state.dashboard && state.dashboard.dashboard_sulawesi);
+  renderMiniTable('pivotKalTable', state.dashboard && state.dashboard.pivot_kal);
   renderLatestTable();
   renderHeaderStats();
-}
-
-function renderDashboardPagination() {
-  const totalPages = state.dashPg.totalPages;
-  const currentPage = state.dashPg.page;
-  const pageSize = state.dashPg.pageSize;
-  const totalRows = state.dashPg.totalRows;
-  const container = document.getElementById('dashSulPagination');
-  if (!container) return;
-
-  // Kosong: tanpa controls, tampilkan empty-state saja
-  if (totalRows === 0) { container.innerHTML = ''; return; }
-
-  let html = '';
-
-  // Info rentang baris (spec §20): "Menampilkan 1–10 dari N"
-  const startNum = (currentPage - 1) * pageSize + 1;
-  const endNum = Math.min(currentPage * pageSize, totalRows);
-  html += `<span class="badge" style="font-size:.75rem;">Menampilkan ${startNum}–${endNum} dari ${totalRows}</span>`;
-
-  // Tombol Previous
-  html += `<button class="btn btn-sm" onclick="goToDashboardPage(${Math.max(1, currentPage - 1)})"` +
-    (currentPage <= 1 ? ' disabled' : '') + `>← Prev</button>`;
-
-  // Tombol Next
-  html += `<button class="btn btn-sm" onclick="goToDashboardPage(${Math.min(totalPages, currentPage + 1)})"` +
-    (currentPage >= totalPages ? ' disabled' : '') + `>Next →</button>`;
-
-  // Jika totalPages kecil, tampilkan nomor halaman
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === currentPage) {
-        html += `<span class="btn btn-sm active">${i}</span>`;
-      } else {
-        html += `<button class="btn btn-sm" onclick="goToDashboardPage(${i})">${i}</button>`;
-      }
-    }
-  } else {
-    // Jumlah halaman banyak: tampilkan 3 awal, titik, tengah, titok, 3 akhir
-    // Awal
-    html += `<button class="btn btn-sm" onclick="goToDashboardPage(1)">1</button>`;
-    html += `<span class="btn btn-sm disabled">...</span>`;
-
-    // Tengah
-    const half = Math.floor(pageSize / 2);
-    let start = Math.max(2, currentPage - half);
-    let end = Math.min(totalPages - 1, currentPage + half);
-    if (start > 2) {
-      html += `<span class="btn btn-sm disabled">...</span>`;
-      start = 2;
-    }
-    if (end < totalPages - 1) {
-      end = totalPages - 1;
-      if (start < totalPages - 1) {
-        html += `<span class="btn btn-sm disabled">...</span>`;
-      }
-    }
-    for (let i = start; i <= end; i++) {
-      if (i === currentPage) {
-        html += `<span class="btn btn-sm active">${i}</span>`;
-      } else {
-        html += `<button class="btn btn-sm" onclick="goToDashboardPage(${i})">${i}</button>`;
-      }
-    }
-
-    // Akhir
-    if (end < totalPages - 1) {
-      html += `<span class="btn btn-sm disabled">...</span>`;
-    }
-    html += `<button class="btn btn-sm" onclick="goToDashboardPage(${totalPages})">${totalPages}</button>`;
-  }
-
-  container.innerHTML = html;
-}
-
-function goToDashboardPage(page) {
-  if (page < 1 || page > state.dashPg.totalPages) return;
-  state.dashPg.page = page;
-  // Reset filter/sort state when changing pages
-  state.filters.dashboardSulawesi = {};
-  state.sort.dashboardSulawesi = {};
-  renderDashboardStage3(true); // skipPageReset=true: jangan reset page, user sedang bergerak manual
 }
 
 async function doLoadDashboard(force) {
@@ -1082,7 +404,6 @@ async function doLoadDashboard(force) {
         const res = await fetch(API_BASE_URL + '?' + d.qs, { redirect: 'follow' });
         const j = await res.json();
         if (!j.success) throw new Error(j.error || 'gagal memuat');
-        if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
         cacheSet(d.name, j.data);
         values[d.name] = j.data;
         applyDashPiece(d.name, j.data);
@@ -1095,8 +416,7 @@ async function doLoadDashboard(force) {
       } finally {
         done++;
         setLoadingText('Mengambil data ' + done + '/' + pending + '... (' + d.label + ')');
-        splashProgress(done / pending * 92, 'Loading ' + d.label + '...');
-        if (done === pending) { renderDashboardStage2(); renderDashboardStage3(); }
+        splashTick(done / pending * 92, 'Loading ' + d.label + '...');
       }
     }));
 
@@ -1125,40 +445,14 @@ function pctOf(part, total) {
 }
 
 /**
- * Status semantik frontend — MIRROR dari classifyStatus_/parseDateLoose_ Code.gs.
- * DONE hanya bila status termasuk passed-set ATAU nilainya tanggal valid.
- * "Progress"/"Work Not Start"/"No Need" BUKAN done (fix audit K3).
+ * Cek apakah nilai menandakan "selesai".
+ * SYNC: Logika harus identik dengan isDone_() di Code.gs.
  */
-const STATUS_DONE_SET = ['passed', 'done', 'done tagging', 'approved', 'released'];
-const STATUS_NEGATIVE_SET = ['work not start', 'not started', 'pending', 'ny', 'ny sm',
-  'belum', 'progress', 'in progress', 'on progress', 'ongoing', 'no need', '-', 'n/a', 'na'];
-
-function normStatusJs(v) {
-  return String(v === undefined || v === null ? '' : v)
-    .toLowerCase().replace(/\s+/g, ' ').trim().replace(/^\d+\s*[-.]?\s*/, '');
-}
-
-function parseDateLooseJs(v) {
-  if (v === null || v === undefined || v === '') return null;
-  if (typeof v === 'number') {
-    return (v > 20000 && v < 60000) ? new Date(Math.round((v - 25569) * 86400000)) : null;
-  }
-  const s = String(v).trim();
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
-  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-}
-
 function isDoneVal(v) {
-  const raw = String(v === undefined || v === null ? '' : v).trim();
-  if (!raw) return false;
-  const s = normStatusJs(raw);
-  if (STATUS_DONE_SET.includes(s)) return true;
-  if (STATUS_NEGATIVE_SET.includes(s)) return false;
-  return parseDateLooseJs(raw) !== null; // tanggal valid = milestone tercapai
+  const s = String(v === undefined || v === null ? '' : v).trim().toUpperCase();
+  if (s === '' || s === '-' || s === 'N' || s === 'NO' || s === 'FALSE' || s === 'NULL') return false;
+  if (s.indexOf('PENDING') !== -1 || s.indexOf('BELUM') !== -1) return false;
+  return true;
 }
 
 function countIssues() {
@@ -1589,14 +883,14 @@ async function loadSheet(sheetKey, force = false) {
   try {
     let j;
     if (c.api === 'pivot') {
-      // Resolver ENGINE > legacy (spec fix §4/§9)
-      j = { success: true, data: await loadDerivedTable(sheetKey) };
+      const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
+        encodeURIComponent(c.sheetName), { redirect: 'follow' });
+      j = await res.json();
     } else {
       const res = await fetch(API_BASE_URL + '?action=' + c.api, { redirect: 'follow' });
       j = await res.json();
     }
     if (!j.success) throw new Error(j.error || 'gagal memuat');
-    if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
     cacheSet(ck, j.data);
     state.sheets[sheetKey] = j.data || [];
     renderCrudTable(sheetKey);
@@ -1622,50 +916,6 @@ function switchPivot(key) {
   } else {
     loadSheet(key);
   }
-}
-
-/* ==================== DERIVED TABLE RESOLVER (spec fix §4/§9) ====================
- * Tab Pivot & tabel turunan memakai resolver yang sama:
- *   1) ENGINE <Nama>   (output calculation engine)
- *   2) <Nama> legacy   (input manual — parallel run)
- *   3) keduanya kosong -> empty-state jelas, tanpa undefined/#ERROR/NaN
- */
-const DERIVED_SHEET_KEYS = { 'pvt-dash-sul': 'Pvt Dash Sul', 'pivot-kal': 'Pivot Kal', 'dash-sul': 'Dashboard Sulawesi' };
-
-async function fetchPivotByName(name) {
-  try {
-    const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
-      encodeURIComponent(name), { redirect: 'follow' });
-    const j = await res.json();
-    if (!j.success) return null;
-    return Array.isArray(j.data) ? j.data : [];
-  } catch (e) { return null; }
-}
-
-function updatePivotSourceBadge(source) {
-  const el = document.getElementById('pivotSource');
-  if (el) el.textContent = source ? ('sumber: ' + source) : 'sumber: Data belum tersedia';
-}
-
-/** Resolver tunggal untuk semua tabel derived pada UI. */
-async function loadDerivedTable(key) {
-  const legacy = cfg(key).sheetName || DERIVED_SHEET_KEYS[key];
-  let source = null;
-  let data = [];
-
-  const eng = await fetchPivotByName('ENGINE ' + legacy);
-  if (eng && eng.length) {
-    data = eng; source = 'ENGINE ' + legacy;
-  } else {
-    const leg = await fetchPivotByName(legacy);
-    if (leg && leg.length) { data = leg; source = 'LEGACY ' + legacy; }
-  }
-
-  state.derivedSource = state.derivedSource || {};
-  state.derivedSource[key] = source;
-  dbgLog('loadDerivedTable ' + key, { resolvedSource: source, rows: data.length });
-  updatePivotSourceBadge(source);
-  return data;
 }
 
 /* ==================== Dashboard ==================== */
@@ -1819,15 +1069,12 @@ function getCtx(id) {
 }
 
 function renderMosChart() {
-  // Prioritas 1: hasil ENGINE sheet (auto-update dari RAW, safe mode)
-  // Prioritas 2: tabel input manual format panjang (Pvt Dash Sul)
-  // Prioritas 3: blok pivot lama 'Assignment x Zona'
-  // Prioritas 4: fallback layout [MONTH | zona | TOTAL]
+  // Prioritas 1: tabel input reguler format panjang (Pvt Dash Sul baru)
+  // Prioritas 2: blok pivot lama 'Assignment x Zona'
+  // Prioritas 3: fallback layout [MONTH | zona | TOTAL]
   let labels, chartDatasets;
 
-  const engPvt = state.dashboard && state.dashboard.engine && state.dashboard.engine.pvt_dash_sul;
-  const longFmt = tryLongFormatPvt(engPvt) ||
-                  tryLongFormatPvt(state.dashboard && state.dashboard.pvt_dash_sul);
+  const longFmt = tryLongFormatPvt(state.dashboard && state.dashboard.pvt_dash_sul);
   const pvt = longFmt ? null : parsePvtDashBlock(state.dashboard && state.dashboard.pvt_dash_sul);
 
   if (longFmt) {
@@ -1969,27 +1216,12 @@ function pruneEmpty(b) {
 function renderMiniTable(divId, sheetData) {
   const el = document.getElementById(divId);
   if (!el) return;
-
-  // Kontrak: normalisasi + assert — renderer tidak pernah melihat bentuk mentah
-  const tbl = assertTableData(normalizeTableData(sheetData, divId));
-
-  if (tbl.sourceError) {
-    el.innerHTML = '<div class="empty-state">DATA ERROR / SOURCE UNAVAILABLE<br>' +
-      '<span style="font-size:.75rem;opacity:.7">' + esc(tbl.sourceError) + '</span></div>';
+  if (!sheetData || !sheetData.rows || !sheetData.rows.length) {
+    el.innerHTML = '<div class="empty-state">Belum ada data</div>';
     return;
   }
-  if (!tbl.rows.length) {
-    const msg = (sheetData && sheetData.emptyMessage) || 'Belum ada data';
-    el.innerHTML = '<div class="empty-state">' + esc(msg) + '</div>';
-    return;
-  }
-  dbgLog('renderMiniTable ' + divId, {
-    source: sheetData && sheetData.label,
-    rows: tbl.rows.length,
-    cols: tbl.headers.length
-  });
 
-  let blocks = explodeWideBlocks(splitColumnBlocks({ headers: tbl.headers, rows: tbl.rows }))
+  let blocks = explodeWideBlocks(splitColumnBlocks(sheetData))
     .map(pruneEmpty)
     .filter(b => b.rows.length && b.size > 0);
 
@@ -2333,9 +1565,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (icon) icon.textContent = '\u25BC';
     }
   });
-  // Global auth init: render panel (initAuth dipanggil setelah endpoint siap)
-  updateAuthStatusBadge(null);
-  renderAuthPanel();
 });window.addEventListener('resize', () => {
   clearTimeout(_resizeT);
   _resizeT = setTimeout(() => {
@@ -2564,19 +1793,13 @@ async function deleteFromDetail() {
 async function deleteRow(sheetKey, rowIndex) {
   if (!confirm('Yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.')) return;
   const c = cfg(sheetKey);
-  try {
-    await apiWrite(c.actions.del, c.api === 'pivot'
-      ? { sheet: c.sheetName, rowIndex: rowIndex }
-      : { rowIndex: rowIndex },
-      { retry: 'delete', sheetKey: sheetKey, rowIndex: rowIndex });
-    invalidateAfterWrite(sheetKey);
-    closeModal();
-    showToast('Data berhasil dihapus');
-    loadSheet(sheetKey, true);
-  } catch (err) {
-    // Form/detail tetap terbuka; pesan sudah ditampilkan apiCall (ternormalisasi)
-    dbgLog('[WRITE]', { action: c.actions.del, result: 'FAILED', error: err.message });
-  }
+  await apiCall(c.actions.del, c.api === 'pivot'
+    ? { sheet: c.sheetName, rowIndex: rowIndex }
+    : { rowIndex: rowIndex });
+  cacheDel('sheet:' + sheetKey); // invalidasi cache sheet terkait
+  closeModal();
+  showToast('Data berhasil dihapus');
+  loadSheet(sheetKey, true);
 }
 
 /* ==================== Modal Form (Tambah/Edit) ==================== */
@@ -2682,25 +1905,14 @@ function saveForm() {
 
   const btn = document.getElementById('btnSave');
   btn.disabled = true;
-  apiWrite(action, payload)
+  apiCall(action, payload)
     .then(() => {
-      invalidateAfterWrite(ctx.sheetKey);
+      cacheDel('sheet:' + ctx.sheetKey); // invalidasi cache sheet terkait
       closeModal();
       showToast(ctx.mode === 'add' ? 'Data berhasil ditambahkan' : 'Data berhasil diperbarui');
       loadSheet(ctx.sheetKey, true);
-      // Segarkan dashboard bila edit menyangkut sumber KPI/pivot
-      if (['site-sul', 'site-kal'].includes(ctx.sheetKey) || PIVOT_KEYS.includes(ctx.sheetKey)) {
-        cacheDel('dashboard');
-        if (state.currentTab === 'dashboard') loadDashboard(true);
-      }
     })
-    .catch((err) => {
-      // Form TIDAK direset — user dapat memperbaiki token lalu Save lagi.
-      // Pesan error sudah ditampilkan oleh apiCall (ternormalisasi via mapAuthError).
-      if (err && err.message === 'AUTH_BLOCKED') {
-        dbgLog('[WRITE]', { action: action, blockedBeforeRequest: true });
-      }
-    })
+    .catch(() => {})
     .finally(() => { btn.disabled = false; });
 }
 
@@ -2864,221 +2076,50 @@ function startSplash(onDone) {
   };
 }
 
-/* ==================== REKONSILIASI MANUAL vs ENGINE ====================
- * Parallel-run (keputusan user): tabel input manual TIDAK dihapus.
- * Panel ini menyandingkan angka manual vs engine + delta, dan memungkinkan
- * investigasi WID penyusun tiap delta via action=metric-wids (lineage).
- */
-
-const RECON_CAT_SUL = { 'Assignment': 'assignment', 'HI Done': 'hi_done',
-  'Connected': 'connected', 'SM ATP': 'sm_atp', 'SM Dismantle': 'sm_dismantle',
-  'Inbound Done': 'inbound_done', 'FI INEOM': 'fi_ineom',
-  'eATP Done': 'eatp_done', 'BAUT Done': 'baut_done' };
-const RECON_CAT_KAL = { 'MOS': 'mos', 'HI': 'hi_done', 'Connected': 'connected' };
-const RECON_MILESTONE = { 'MOS Done': 'mos', 'HI Done': 'hi_done',
-  'Connected': 'connected', 'SM ATP': 'sm_atp', 'ATP Passed': 'atp_passed',
-  'FI Ineom': 'fi_ineom', 'Ineom Passed': 'ineom_passed', 'eATP Done': 'eatp_done' };
-
-function reconMonthNum(label) {
-  const i = MONTHS.indexOf(String(label).toUpperCase().substring(0, 3));
-  return i < 0 ? null : (i + 1);
-}
-
-async function loadReconciliation() {
-  const statusEl = document.getElementById('reconStatus');
-  const wrapEl = document.getElementById('reconTables');
-  if (!wrapEl) return;
-  try {
-    if (statusEl) statusEl.textContent = 'Memuat...';
-    const res = await fetch(API_BASE_URL + '?action=compare&year=' +
-      new Date().getFullYear(), { redirect: 'follow' });
-    const j = await res.json();
-    if (!j.success) throw new Error(j.error || 'gagal');
-    if (j.data && j.data.dataVersion !== undefined) setDataVersion(j.data.dataVersion);
-    renderReconciliation(j.data);
-    if (statusEl) {
-      statusEl.textContent = 'dataVersion ' + j.data.dataVersion +
-        ' · ' + new Date(j.data.generatedAt).toLocaleTimeString();
-    }
-  } catch (err) {
-    if (statusEl) statusEl.textContent = 'Gagal: ' + err.message;
-  }
-}
-
-function renderReconciliation(data) {
-  const wrapEl = document.getElementById('reconTables');
-  if (!wrapEl) return;
-  let html = '';
-  data.sections.forEach((sec, si) => {
-    html += '<div class="card" style="margin-bottom:10px;">' +
-      '<h2 style="font-size:.95rem;">' + esc(sec.sheet) +
-      ' <span class="badge">' +
-        'match ' + sec.summary.matched + ' · beda ' + sec.summary.diff +
-        ' · hanya-manual ' + sec.summary.manualOnly +
-        ' · hanya-engine ' + sec.summary.engineOnly +
-      '</span></h2>';
-    if (!sec.rows.length) {
-      html += '<div class="empty-state">Belum ada data pembanding (jalankan Engine dulu)</div></div>';
-      return;
-    }
-    html += '<div class="table-scroll"><table class="data-table compact" id="reconTable-' + si + '">' +
-      '<thead><tr>' +
-        sec.keyHeaders.map(h => '<th>' + esc(h) + '</th>').join('') +
-        '<th>Manual</th><th>Engine</th><th>Delta</th>' +
-      '</tr></thead><tbody>';
-    sec.rows.forEach(r => {
-      const deltaTxt = r.delta === null ? '—' : String(r.delta);
-      const bad = r.delta !== null && r.delta !== 0;
-      const tag = r.manual === null ? ' <span class="badge">hanya-engine</span>'
-        : (r.engine === null ? ' <span class="badge">hanya-manual</span>' : '');
-      // Badge snapshot utk metrik status (metadata dari backend)
-      let snapTag = '';
-      if (sec.metricMeta && sec.metricMeta[r.key[0]] &&
-          sec.metricMeta[r.key[0]].type === 'SNAPSHOT_STATUS') {
-        snapTag = ' <span class="badge" title="' +
-          esc(sec.metricMeta[r.key[0]].note || 'Snapshot saat ini') + '">⏱snapshot</span>';
-      }
-      html += '<tr' + (bad ? ' class="clickable"' : '') +
-        (bad ? ' title="Klik untuk telusuri WID penyusun"' : '') +
-        ' data-section="' + esc(sec.sheet) + '"' +
-        ' data-key="' + esc(r.key.join('|')) + '"' +
-        ' onclick="' + (bad ? 'reconDrill(this)' : '') + '">' +
-        r.key.map((k, ki) => '<td>' + esc(k) + (ki === 0 ? snapTag : '') + '</td>').join('') +
-        '<td class="num">' + esc(r.manual === null ? '—' : r.manual) + '</td>' +
-        '<td class="num">' + esc(r.engine === null ? '—' : r.engine) + '</td>' +
-        '<td class="num"' + (bad ? ' style="color:#ff5252;font-weight:700;"' : '') + '>' +
-          deltaTxt + tag + '</td>' +
-      '</tr>';
-    });
-    html += '</tbody></table></div></div>';
-  });
-  wrapEl.innerHTML = html;
-}
-
-/** Klik baris delta → tampilkan/sembunyikan daftar WID penyusun metrik tsb */
-async function reconDrill(tr) {
-  // Hapus detail lama pada baris ini bila ada
-  const existing = tr.nextElementSibling;
-  if (existing && existing.classList.contains('recon-detail-row')) {
-    existing.remove();
-    return;
-  }
-  // Tutup detail lain yang terbuka
-  document.querySelectorAll('.recon-detail-row').forEach(el => el.remove());
-
-  const sheet = tr.dataset.section;
-  const keyParts = tr.dataset.key.split('|');
-  const year = new Date().getFullYear();
-
-  let source = 'sul', metric = null, month = null, zone = '';
-  if (sheet === 'Pvt Dash Sul') {
-    metric = RECON_CAT_SUL[keyParts[0]]; month = reconMonthNum(keyParts[1]); zone = keyParts[2] || '';
-  } else if (sheet === 'Pivot Kal') {
-    source = 'kal'; metric = RECON_CAT_KAL[keyParts[0]]; month = reconMonthNum(keyParts[1]);
-  } else if (sheet.indexOf('Dashboard Sulawesi') === 0) {
-    metric = RECON_MILESTONE[keyParts[0]]; month = reconMonthNum(keyParts[1]); zone = keyParts[2] || '';
-  }
-  if (!metric || !month) return;
-
-  const detailRow = document.createElement('tr');
-  detailRow.className = 'recon-detail-row';
-  const td = document.createElement('td');
-  td.colSpan = tr.children.length;
-  td.textContent = 'Menelusuri WID...';
-  detailRow.appendChild(td);
-  tr.after(detailRow);
-
-  try {
-    const j = await apiCall('metric-wids', {
-      source: source, metric: metric,
-      year: year, month: month, zone: zone
-    });
-    const d = j.data;
-    const list = d.rows.slice(0, 50).map(r =>
-      esc(r.wid) + (r.siteName ? ' — ' + esc(truncate(r.siteName, 34)) : '') +
-      ' <span style="opacity:.7">[' + esc(r.value || '-') + ']</span>').join('<br>');
-    td.innerHTML =
-      '<b>' + esc(d.label) + '</b> · sumber ' + esc(d.source) +
-      ' · total penyusun engine: <b>' + d.count + '</b>' +
-      (d.truncated ? ' (menampilkan 50 pertama)' : '') +
-      '<div style="max-height:180px;overflow:auto;margin-top:6px;font-size:.75rem;line-height:1.5;">' +
-      (list || '<i>Tidak ada baris — kemungkinan selisih berasal dari definisi/filter</i>') +
-      '</div>' +
-      '<div style="margin-top:6px;font-size:.72rem;opacity:.75;">Bandingkan dengan catatan manual. ' +
-      'Jika WID engine tampak benar → cache/manual yang usang. Jika ada tanggal invalid → perbaiki RAW.</div>';
-  } catch (err) {
-    td.textContent = 'Gagal menelusuri: ' + err.message;
-  }
-}
-
-
-
 /* ==================== ADMIN TOOLS ==================== */
 
 /**
- * FIX (audit K1): action create-formulas DINONAKTIFKAN di backend karena
- * writer formula lama terbukti destruktif (menghapus layout dashboard +
- * menulis formula salah kolom). Fungsi ini kini hanya menampilkan info.
+ * Membuat formula hubungan antar sheet (COUNTIFS)
+ * Memanggil backend action 'create-formulas'
  */
 async function createFormulas() {
-  showToast('Tombol dinonaktifkan: writer formula lama berbahaya. Gunakan "Jalankan Engine" (sheet ENGINE_*).', 'error');
-}
-
-/** Simpan token lalu VERIFIKASI ke backend sebelum menganggap valid */
-async function saveToken() {
-  const inp = document.getElementById('authTokenInput');
-  const statusEl = document.getElementById('authStatus');
-  const t = inp ? inp.value.trim() : '';
-  if (!t) { showToast('Masukkan token terlebih dahulu.', 'error'); return; }
-  if (statusEl) statusEl.textContent = 'Memeriksa token...';
+  const btn = document.getElementById('btnCreateFormulas');
+  const status = document.getElementById('formulaStatus');
+  
+  if (!confirm('Buat formula hubungan sheet?\n\nIni akan membuat formula COUNTIFS di:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nLanjutkan?')) {
+    return;
+  }
+  
+  // Disable button, show loading
+  btn.disabled = true;
+  btn.textContent = 'Membuat formula...';
+  status.style.display = 'inline';
+  status.textContent = 'Processing...';
+  status.className = 'badge';
+  
   try {
-    // Simpan sementara agar getToken() mengirim token ini ke backend
-    saveAuthToken(t);
-    const res = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'auth-status', token: t }),
+    const res = await fetch(API_BASE_URL + '?action=create-formulas', {
       redirect: 'follow'
     });
-    const j = await res.json();
-    const info = j && j.data;
-    const validRole = info && ['VIEWER', 'OPERATOR', 'ADMIN'].indexOf(info.role) !== -1;
-    if (validRole) {
-      setAuthRole(info.role);           // valid -> role tersimpan
-      state.authToken = getAuthToken();
-      showToast('Token valid. Role: ' + info.role);
+    const json = await res.json();
+    
+    if (json.success === true) {
+      status.textContent = 'Berhasil!';
+      status.className = 'badge badge-success';
+      alert('Formula berhasil dibuat!\n\nSheet yang sudah di-update:\n- Pivot Sul\n- Pivot Kal\n- Pvt Dash Sul\n- Dashboard_2026\n\nSilakan cek Google Spreadsheet.');
     } else {
-      clearAuthToken();                 // INVALID -> buang, role tetap ANONYMOUS
-      showToast('Token tidak valid atau sudah kedaluwarsa.', 'error');
+      status.textContent = 'Gagal';
+      status.className = 'badge badge-error';
+      alert('Gagal membuat formula: ' + (json.error || json.message || 'Unknown error'));
     }
-    updateAuthStatusBadge(validRole ? info : null);
-    renderAuthPanel();
-    if (inp) inp.value = '';            // JANGAN tampilkan token plaintext di DOM
   } catch (err) {
-    clearAuthToken();
-    updateAuthStatusBadge(null);
-    renderAuthPanel();
-    showToast('Gagal terhubung ke server. Data belum disimpan.', 'error');
-  }
-}
-
-/** Jalankan calculation engine (butuh role ADMIN) */
-async function runEngineSync() {
-  const statusEl = document.getElementById('engineStatus');
-  try {
-    if (!confirm('Jalankan calculation engine?\n\nHasil ditulis ke sheet ENGINE_* — sheet manual & RAW tidak disentuh.')) return;
-    if (statusEl) statusEl.textContent = 'Engine berjalan...';
-    const j = await apiWrite('sync-engine');
-    if (statusEl) {
-      statusEl.textContent = 'Selesai (dataVersion ' + (j.data && j.data.dataVersion) + ')';
-      statusEl.className = 'badge badge-success';
-    }
-    showToast('Engine sync selesai');
-    // Data baru tersedia -> buang cache & render ulang
-    purgeAllAppCache();
-    loadDashboard(true);
-  } catch (err) {
-    if (statusEl) { statusEl.textContent = 'Gagal: ' + err.message; statusEl.className = 'badge badge-error'; }
+    status.textContent = 'Error';
+    status.className = 'badge badge-error';
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Buat Formula Hubungan Sheet';
+    setTimeout(() => { status.style.display = 'none'; }, 5000);
   }
 }
 
@@ -3086,14 +2127,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const sel = document.getElementById('pivotSelect');
   if (sel) sel.addEventListener('change', e => switchPivot(e.target.value));
 
-  // Resolusi backend aktif dulu (health check kandidat URL), baru auth + muat data
-  resolveApiBaseUrl().finally(() => {
-    initAuth(); // verifikasi token tersimpan (jika ada) setelah endpoint siap
-    loadTabData('dashboard').catch(() => {});
-    startSplash(() => {
-      // switchTab akan memakai hasil inflight/cache -> instan
-      switchTab('dashboard');
-    });
+  // Mulai ambil data SELAMA splash berjalan (paralel, bukan setelahnya)
+  loadTabData('dashboard').catch(() => {});
+  startSplash(() => {
+    // switchTab akan memakai hasil inflight/cache -> instan
+    switchTab('dashboard');
   });
 });
 
