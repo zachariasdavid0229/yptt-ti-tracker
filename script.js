@@ -401,7 +401,8 @@ async function doLoadDashboard(force) {
     .filter(d => values[d.name] === undefined)
     .map(async d => {
       try {
-        const res = await fetch(API_BASE_URL + '?' + d.qs, { redirect: 'follow' });
+        const action = d.qs.split('=')[1] || d.qs;
+        const res = await fetch(API_BASE_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({action: action, token: getToken()}), redirect: 'follow' });
         const j = await res.json();
         if (!j.success) throw new Error(j.error || 'gagal memuat');
         cacheSet(d.name, j.data);
@@ -883,11 +884,10 @@ async function loadSheet(sheetKey, force = false) {
   try {
     let j;
     if (c.api === 'pivot') {
-      const res = await fetch(API_BASE_URL + '?action=pivot&name=' +
-        encodeURIComponent(c.sheetName), { redirect: 'follow' });
+      const res = await fetch(API_BASE_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({action: 'pivot', name: c.sheetName, token: getToken()}), redirect: 'follow' });
       j = await res.json();
     } else {
-      const res = await fetch(API_BASE_URL + '?action=' + c.api, { redirect: 'follow' });
+      const res = await fetch(API_BASE_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({action: c.api, token: getToken()}), redirect: 'follow' });
       j = await res.json();
     }
     if (!j.success) throw new Error(j.error || 'gagal memuat');
@@ -2098,9 +2098,7 @@ async function createFormulas() {
   status.className = 'badge';
   
   try {
-    const res = await fetch(API_BASE_URL + '?action=create-formulas', {
-      redirect: 'follow'
-    });
+    const res = await fetch(API_BASE_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({action: 'create-formulas', token: getToken()}), redirect: 'follow' });
     const json = await res.json();
     
     if (json.success === true) {
